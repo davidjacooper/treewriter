@@ -54,7 +54,7 @@ public class TreeWriter extends PrefixingWriter
         }
         else
         {
-            addPrefix(padding);
+            addPrefix(options.getParentLine());
             for(int i = 0; i < preNodeLines; i++)
             {
                 lineBreak();
