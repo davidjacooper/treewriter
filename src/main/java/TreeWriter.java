@@ -7,7 +7,8 @@ import java.util.function.*;
 
 public class TreeWriter extends PrintWriter
 {
-    private TreeOptions options = new TreeOptions();
+    private NodeOptions stdOptions = new NodeOptions();
+    private NodeOptions nextOptions = null;
     private PrefixingWriter prefixOut;
 
     public TreeWriter(OutputStream out, Charset charset)
@@ -33,12 +34,23 @@ public class TreeWriter extends PrintWriter
         this.prefixOut = out;
     }
 
-    public TreeOptions options()
+    public NodeOptions options()
     {
-        return options;
+        return stdOptions;
     }
 
     public void startNode(boolean lastSibling)
+    {
+        NodeOptions opts = stdOptions;
+        if(nextOptions != null)
+        {
+            opts = nextOptions;
+            nextOptions = nextOptions.getNext();
+        }
+        startNode(lastSibling, opts);
+    }
+
+    public void startNode(boolean lastSibling, NodeOptions nodeOptions)
     {
         try
         {
@@ -50,27 +62,34 @@ public class TreeWriter extends PrintWriter
             String connector, padding;
             if(lastSibling)
             {
-                connector = options.getLastConnector();
-                padding = options.getLastPaddingPrefix();
+                connector = nodeOptions.getLastConnector();
+                padding = nodeOptions.getLastPaddingPrefix();
             }
             else
             {
-                connector = options.getConnector();
-                padding = options.getPaddingPrefix();
+                connector = nodeOptions.getConnector();
+                padding = nodeOptions.getPaddingPrefix();
             }
 
-            int preNodeLines = options.getPreNodeLines();
-            if(preNodeLines == 0)
+            int topMargin = nodeOptions.getTopMargin();
+            int topConnectorLength = nodeOptions.getTopConnectorLength();
+            if(topMargin == 0 && topConnectorLength == 0)
             {
                 prefixOut.addPrefix(connector);
                 prefixOut.replacePrefixAfterLine(padding);
             }
             else
             {
-                prefixOut.addPrefix(options.getParentLine());
-                for(int i = 0; i < preNodeLines; i++)
+                prefixOut.addPrefix(nodeOptions.getPaddingPrefix());
+                for(int i = 0; i < topMargin; i++)
                 {
                     prefixOut.lineBreak();
+                }
+
+                var topConnector = nodeOptions.getTopConnector();
+                for(int i = 0; i < topConnectorLength; i++)
+                {
+                    println(topConnector);
                 }
                 prefixOut.replacePrefix(connector);
                 prefixOut.replacePrefixAfterLine(padding);
@@ -80,11 +99,50 @@ public class TreeWriter extends PrintWriter
         {
             setError();
         }
+        nextOptions = nodeOptions.getNext();
     }
 
     public void endNode()
     {
         prefixOut.removePrefix();
+    }
+
+    public void startLabelNode()
+    {
+        startNode(false, stdOptions.copy().asLabel());
+    }
+
+    public void startPreLabelNode()
+    {
+        startNode(false, stdOptions.copy().asPreLabel());
+    }
+
+    public void printLabel(String s)
+    {
+        startLabelNode();
+        println(s);
+        endNode();
+    }
+
+    public void printPreLabel(String s)
+    {
+        startPreLabelNode();
+        println(s);
+        endNode();
+    }
+
+    public void printfLabel(String format, Object... args)
+    {
+        startLabelNode();
+        printf(format, args);
+        endNode();
+    }
+
+    public void printfPreLabel(String format, Object... args)
+    {
+        startPreLabelNode();
+        printf(format, args);
+        endNode();
     }
 
     public <N> void printTree(N node,
