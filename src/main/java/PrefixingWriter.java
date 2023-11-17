@@ -8,13 +8,22 @@ import java.util.*;
 
 public class PrefixingWriter extends Writer
 {
+    public static final int DEFAULT_WRAP_LENGTH = 80;
+
     private Writer out;
     private Deque<String> prefixes = new LinkedList<>();
     private String nextLinePrefix = null;
     protected int lineLength = 0;
 
-    // private int wrapLength = AnsiConsole.getTerminalWidth();
-    private int wrapLength = 80;
+    private int wrapLength;
+
+    {
+        wrapLength = AnsiConsole.getTerminalWidth();
+        if(wrapLength == 0)
+        {
+            wrapLength = DEFAULT_WRAP_LENGTH;
+        }
+    }
 
     public PrefixingWriter(OutputStream out, Charset charset)
     {
@@ -29,6 +38,16 @@ public class PrefixingWriter extends Writer
     public PrefixingWriter(Writer out)
     {
         this.out = out;
+    }
+
+    public int getLineLength()
+    {
+        return lineLength;
+    }
+
+    public int getWrapLength()
+    {
+        return wrapLength;
     }
 
     public void addPrefix(String newPrefix)
