@@ -32,7 +32,7 @@ public class TreeOptions
         return this;
     }
 
-    public TreeOptions parentLineCh(String parentLine)
+    public TreeOptions parentLine(String parentLine)
     {
         this.parentLine = parentLine;
         paddingPrefix = null;
