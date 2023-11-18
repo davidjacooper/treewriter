@@ -16,6 +16,7 @@ public class PrefixingWriter extends Writer
     protected int lineLength = 0;
 
     private int wrapLength;
+    private AnsiState ansiState = new AnsiState();
 
     {
         wrapLength = AnsiConsole.getTerminalWidth();
@@ -83,6 +84,7 @@ public class PrefixingWriter extends Writer
             out.write(prefix);
             lineLength += prefix.length();
         }
+        ansiState.write(out);
     }
 
     protected void lineBreak() throws IOException
@@ -91,7 +93,11 @@ public class PrefixingWriter extends Writer
         {
             writePrefix();
         }
-        out.write("\n");
+        if(!ansiState.isEmpty())
+        {
+            out.write(AnsiState.RESET);
+        }
+        out.write('\n');
         flush();
         lineLength = 0;
         if(nextLinePrefix != null)
@@ -124,7 +130,7 @@ public class PrefixingWriter extends Writer
         }
     }
 
-    private void writeLine(char[] buf, int off, int len) throws IOException
+    private void writeSegment(char[] buf, int off, int len) throws IOException
     {
         if(wrapLength == 0)
         {
@@ -173,24 +179,49 @@ public class PrefixingWriter extends Writer
             throw new IndexOutOfBoundsException("Offset + length exceed the buffer size");
         }
 
-        int i = off;
-        int j = off;
-        while(j < len)
+        int start = off;
+        int lookahead = off;
+        while(lookahead < len)
         {
-            if(buf[j] == '\n')
+            switch(buf[lookahead])
             {
-                if(j > i)
-                {
-                    writeLine(buf, i, j - i);
-                }
-                lineBreak();
-                i = j + 1;
+                case '\033':
+                    if(lookahead > start)
+                    {
+                        writeSegment(buf, start, lookahead - 1);
+                    }
+                    lookahead++;
+                    if(lookahead < len && buf[lookahead] == '[')
+                    {
+                        lookahead++;
+                        int ansiCodeStart = lookahead;
+                        while(lookahead < len && 0x20 <= buf[lookahead] && buf[lookahead] <= 0x3f)
+                        {
+                            lookahead++;
+                        }
+                        ansiState.update(buf, ansiCodeStart, lookahead - ansiCodeStart);
+                        lookahead++;
+                    }
+                    start = lookahead;
+                    break;
+
+                case '\n':
+                    if(lookahead > start)
+                    {
+                        writeSegment(buf, start, lookahead - start);
+                    }
+                    lineBreak();
+                    lookahead++;
+                    start = lookahead;
+                    break;
+
+                default:
+                    lookahead++;
             }
-            j++;
         }
-        if(i < len)
+        if(start < len)
         {
-            writeLine(buf, i, len - i);
+            writeSegment(buf, start, len - start);
         }
     }
 
