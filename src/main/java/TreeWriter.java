@@ -1,4 +1,4 @@
-package au.djac.jprinttree;
+package au.djac.treewriter;
 
 import java.io.*;
 import java.nio.charset.Charset;

@@ -1,4 +1,4 @@
-package au.djac.jprinttree;
+package au.djac.treewriter;
 
 import org.fusesource.jansi.AnsiConsole;
 

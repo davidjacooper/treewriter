@@ -49,13 +49,13 @@ javadoc {
 
 publishing {
     publications {
-        JPrintTreeLibrary(MavenPublication) {
+        TreeWriterLibrary(MavenPublication) {
             from components.java
 
             pom {
-                name = 'JPrintTree'
+                name = 'TreeWriter'
                 description = 'A library for outputting tree structures in Unicode/terminal environments'
-                url = 'https://github.com/davidjacooper/jprinttree'
+                url = 'https://github.com/davidjacooper/treewriter'
 
                 licenses {
                     license {
@@ -68,14 +68,14 @@ publishing {
                     developer {
                         id = 'djac'
                         name = 'David J A Cooper'
-                        email = 'david.cooper+jprinttree@djac.au'
+                        email = 'david.cooper+treewriter@djac.au'
                     }
                 }
 
                 scm {
-                    connection = 'scm:git:git://github.com/davidjacooper/jprinttree.git'
-                    developerConnection = 'scm:git:ssh://github.com/davidjacooper/jprinttree.git'
-                    url = 'https://github.com/davidjacooper/jprinttree'
+                    connection = 'scm:git:git://github.com/davidjacooper/treewriter.git'
+                    developerConnection = 'scm:git:ssh://github.com/davidjacooper/treewriter.git'
+                    url = 'https://github.com/davidjacooper/treewriter'
                 }
             }
         }
