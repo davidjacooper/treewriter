@@ -188,20 +188,25 @@ public class PrefixingWriter extends Writer
                 case '\033':
                     if(lookahead > start)
                     {
-                        writeSegment(buf, start, lookahead - 1);
+                        writeSegment(buf, start, lookahead - start);
                     }
+                    int ansiCodeStart = lookahead;
                     lookahead++;
                     if(lookahead < len && buf[lookahead] == '[')
                     {
                         lookahead++;
-                        int ansiCodeStart = lookahead;
                         while(lookahead < len && 0x20 <= buf[lookahead] && buf[lookahead] <= 0x3f)
                         {
                             lookahead++;
                         }
-                        ansiState.update(buf, ansiCodeStart, lookahead - ansiCodeStart);
+                        ansiState.update(buf, ansiCodeStart + 2, lookahead - ansiCodeStart - 1);
                         lookahead++;
                     }
+                    if(lineLength == 0)
+                    {
+                        writePrefix();
+                    }
+                    out.write(buf, ansiCodeStart, lookahead - ansiCodeStart);
                     start = lookahead;
                     break;
 
