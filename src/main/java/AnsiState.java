@@ -20,7 +20,9 @@ public class AnsiState
 
     public void update(char[] buf, int off, int len)
     {
-        // Ignore any non-SGR ("select graphic rendition") codes
+        // Ignore any non-SGR ("select graphic rendition") codes.
+        // (In future, we might want to take account of codes that move the cursor back and forth,
+        // but there's likely a limit to what we can do with them.)
         if(len == 0 || buf[off + len - 1] != 'm') { return; }
 
         if(len == 1) // \033[m

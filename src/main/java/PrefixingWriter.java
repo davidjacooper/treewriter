@@ -6,6 +6,41 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
+/**
+ * A {@code Writer} that automatically adds "prefixes" to the start of lines, even when lines are
+ * wrapped. These prefixes themselves are built up and torn down through calls to
+ * {@link addPrefix addPrefix}, {@link removePrefix removePrefix},
+ * {@link replacePrefix replacePrefix} and {@link replacePrefixAfterLine replacePrefixAfterLine}.
+ * These are expected to be interspersed with calls to the various {@code write} methods (which
+ * supply the text to be prefixed).
+ *
+ * <p>The main purpose of this class is to support {@link TreeWriter}, which provides a
+ * higher-level interface for outputting tree structures. {@code PrefixingWriter} can in principle
+ * be used by itself, though it lacks methods like {@code println} and {@code printf}, not being a
+ * subclass of {@code PrintWriter}.
+ *
+ * <p>{@code PrefixingWriter} performs its own wrapping, independently of the forced wrapping
+ * provided by any terminal environment, so that it can display the required prefixes again on the
+ * next line before the wrapped text is allowed to continue. To this end, it must determine the
+ * length of lines, either automatically (via the JAnsi library, if an appropriate terminal
+ * environment exists), or by having the client code call {@link setWrapLength}. Otherwise, it will
+ * assume a default "wrap length" of 80 characters.
+ *
+ * <p>{@code PrefixingWriter} supports ANSI escape codes (e.g., for changing text colours) in two
+ * ways:
+ * <ol>
+ *   <li>ANSI escape codes (beginning with "{@code \033[}") do not count towards the current line
+ *       length (since they don't appear on screen), and so won't cause lines to wrap early;
+ *       and</li>
+ *   <li>Colour/font changes produced by such codes are tracked, "paused" at the end of lines (and
+ *       when lines wrap) so as not to affect the prefixes, and "resumed" on the next line after
+ *       the prefixes are output.</li>
+ * </ol>
+ * <p>(The class won't output any ANSI codes itself unless they already appear in text provided to
+ * one of the {@code write} methods.)
+ *
+ * @author David Cooper
+ */
 public class PrefixingWriter extends Writer
 {
     public static final int DEFAULT_WRAP_LENGTH = 80;
@@ -36,19 +71,39 @@ public class PrefixingWriter extends Writer
         this(out, Charset.defaultCharset());
     }
 
+    public PrefixingWriter()
+    {
+        this(System.out);
+    }
+
     public PrefixingWriter(Writer out)
     {
         this.out = out;
     }
 
-    public int getLineLength()
+    public void setWrapLength(int wrapLength)
     {
-        return lineLength;
+        this.wrapLength = wrapLength;
     }
 
-    public int getWrapLength()
+    public int getWrapLength()         { return wrapLength; }
+    public int getLineLength()         { return lineLength; }
+    public int getTotalLineSpace()     { return getLineCapacity(0); }
+    public int getRemainingLineSpace() { return getLineCapacity(lineLength); }
+
+    public int getLineCapacity(int deduction)
     {
-        return wrapLength;
+        if(wrapLength <= 0 || wrapLength == Integer.MAX_VALUE)
+        {
+            return Integer.MAX_VALUE;
+        }
+
+        int capacity = wrapLength - deduction;
+        for(var prefix : prefixes)
+        {
+            capacity -= prefix.length();
+        }
+        return capacity;
     }
 
     public void addPrefix(String newPrefix)
