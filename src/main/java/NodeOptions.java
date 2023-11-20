@@ -57,14 +57,15 @@ public class NodeOptions
 
     /**
      * Sets the "top connector length" &ndash; the number of lines preceding a node that contain
-     * the "top connector", a visual mechanism for connecting the node to a preceding node. This is
-     * <em>not</em> the normal mechanism for drawing just a basic tree structure. Rather, it is
-     * used (for instance) to draw "pre labels". See {@link TreeWriter#startPreLabelNode}.
+     * the "top connector", a visual mechanism for connecting the node to a preceding node <em>in a
+     * special way</em>. This is <em>not</em> the normal mechanism for drawing just a basic tree
+     * structure. Rather, it is used (for instance) to draw "pre labels".
      *
      * <p>This is 0 by default (no top connector), and would typically be 0 or 1. If non-zero values
      * for both {@link topMargin(int) topMargin} and {@code topConnectorLength} are given, the
      * margin precedes the top connector.
      *
+     * @see TreeWriter#startPreLabelNode
      * @param topConnectorLength A new "top connector length".
      * @return This {@code NodeOptions} instance.
      */
@@ -77,13 +78,13 @@ public class NodeOptions
     /**
      * Sets the "top connector" string, to be printed before a node
      * ({@link topConnectorLength(int) topConnectorLength} times) to indicate that it's connected
-     * to a preceding node. This is <em>not</em> the normal mechanism for drawing just a basic tree
-     * structure. Rather, it is used (for instance) to draw "pre labels". See
-     * {@link TreeWriter#startPreLabelNode}.
+     * to a preceding node <em>in a special way</em>. This is <em>not</em> the normal mechanism for
+     * drawing just a basic tree structure. Rather, it is used (for instance) to draw "pre labels".
      *
      * <p>By default, this is "┊", the unicode "BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL"
      * character, 0x250a.
      *
+     * @see TreeWriter#startPreLabelNode
      * @param topConnector A new "top connector" string.
      * @return This {@code NodeOptions} instance.
      */
@@ -182,8 +183,8 @@ public class NodeOptions
     }
 
     /**
-     * Intended for individual nodes &ndash; formats a "pre-label" node, similar to an ordinary
-     * label (see {@link asLabel}), but connected to the next sibling node via a
+     * Intended for individual nodes &ndash; formats a "pre-label" node, similar to an
+     * {@link asLabel ordinary label}, but connected to the next sibling node via a
      * {@link topConnector(String) topConnector}. Use this to annotate a node prior to the node's
      * main text.
      *
@@ -228,7 +229,7 @@ public class NodeOptions
 
     /**
      * Sets another {@code NodeOptions} instance to be applied to the first child of the current
-     * node (whichever node(s) <em>this</em> {@code NodeOptions} instance is applied to. This is
+     * node (whichever node(s) <em>this</em> {@code NodeOptions} instance is applied to). This is
      * similar in concept to {@link nextSiblingOptions}.
      *
      * <p>In the simplest case, this comes into effect when calling
@@ -296,15 +297,94 @@ public class NodeOptions
     }
 
 
-    public NodeOptions getNextSiblingOptions() { return nextSiblingOptions; }
-    public NodeOptions getFirstChildOptions()  { return firstChildOptions; }
-    public int getTopMargin()           { return topMargin; }
-    public int getTopConnectorLength()  { return topConnectorLength; }
-    public String getTopConnector()     { return topConnector; }
-    public String getParentLine()       { return parentLine; }
-    public String getMidConnector()     { return midConnector; }
-    public String getEndConnector()     { return endConnector; }
+    /**
+     * Retrieves the options (if any) to be applied to the next sibling node (of the node(s) to
+     * which <em>these</em> settings are applied).
+     * @return The next sibling options, or {@code null} if there aren't any.
+     */
+    public NodeOptions getNextSiblingOptions()
+    {
+        return nextSiblingOptions;
+    }
 
+    /**
+     * Retrieves the options (if any) to be applied to the first child node (of the node(s) to which
+     * <em>these</em> settings are applied).
+     * @return The first child options, or {@code null} if there aren't any.
+     */
+    public NodeOptions getFirstChildOptions()
+    {
+        return firstChildOptions;
+    }
+
+    /**
+     * Retrieves the size of the "top margin".
+     * @see #topMargin(int)
+     * @return The top margin length.
+     */
+    public int getTopMargin()
+    {
+        return topMargin;
+    }
+
+    /**
+     * Retrieves the size of the "top connector".
+     * @see #topConnectorLength(int)
+     * @return The top connector length.
+     */
+    public int getTopConnectorLength()
+    {
+        return topConnectorLength;
+    }
+
+    /**
+     * Retrives the string representing the "top connector".
+     * @see #topConnector(String)
+     * @return The top connector string.
+     */
+    public String getTopConnector()
+    {
+        return topConnector;
+    }
+
+    /**
+     * Retrives the string representing the "parent line".
+     * @see #parentLine(String)
+     * @return The parent line string.
+     */
+    public String getParentLine()
+    {
+        return parentLine;
+    }
+
+    /**
+     * Retrives the string representing the "mid connector".
+     * @see #midConnector(String)
+     * @return The mid connector string.
+     */
+    public String getMidConnector()
+    {
+        return midConnector;
+    }
+
+    /**
+     * Retrives the string representing the "end connector".
+     * @see #endConnector(String)
+     * @return The end connector string.
+     */
+    public String getEndConnector()
+    {
+        return endConnector;
+    }
+
+    /**
+     * Retrieves the padding string that precedes each line of a node, other than a final child
+     * node, and apart from where the actual mid connector is drawn. This is automatically created
+     * based on the {@link parentLine(String) parentLine} and the size of the
+     * {@link midConnector(String) midConnector}.
+     *
+     * @return The mid padding string.
+     */
     public String getMidPaddingPrefix()
     {
         if(midPaddingPrefix == null)
@@ -316,6 +396,13 @@ public class NodeOptions
         return midPaddingPrefix;
     }
 
+    /**
+     * Retrieves the padding string that precedes each line of a final child node, apart from where
+     * the actual end connector is drawn. This is automatically created based on the size of the
+     * {@link endConnector(String) endConnector}.
+     *
+     * @return The end padding string.
+     */
     public String getEndPaddingPrefix()
     {
         if(endPaddingPrefix == null)

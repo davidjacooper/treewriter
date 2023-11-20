@@ -12,12 +12,12 @@ import java.util.*;
  * {@link addPrefix addPrefix}, {@link removePrefix removePrefix},
  * {@link replacePrefix replacePrefix} and {@link replacePrefixAfterLine replacePrefixAfterLine}.
  * These are expected to be interspersed with calls to the various {@code write} methods (which
- * supply the text to be prefixed).
+ * supply the text to be prefixed). Changes to prefixes take effect after the next line break.
  *
  * <p>The main purpose of this class is to support {@link TreeWriter}, which provides a
  * higher-level interface for outputting tree structures. {@code PrefixingWriter} can in principle
- * be used by itself, though it lacks methods like {@code println} and {@code printf}, not being a
- * subclass of {@code PrintWriter}.
+ * be used by itself, though it lacks methods like {@code println} and {@code printf} (not being a
+ * subclass of {@code PrintWriter}).
  *
  * <p>{@code PrefixingWriter} performs its own wrapping, independently of the forced wrapping
  * provided by any terminal environment, so that it can display the required prefixes again on the
@@ -43,55 +43,144 @@ import java.util.*;
  */
 public class PrefixingWriter extends Writer
 {
+    /** The length to which lines are wrapped by default, if automatic detection fails. */
     public static final int DEFAULT_WRAP_LENGTH = 80;
 
     private Writer out;
     private Deque<String> prefixes = new LinkedList<>();
     private String nextLinePrefix = null;
-    protected int lineLength = 0;
+    private int lineLength = 0;
 
     private int wrapLength;
+    private boolean wrapLengthAuto;
     private AnsiState ansiState = new AnsiState();
 
     {
         wrapLength = AnsiConsole.getTerminalWidth();
-        if(wrapLength == 0)
+        wrapLengthAuto = (wrapLength > 0);
+        if(!wrapLengthAuto)
         {
             wrapLength = DEFAULT_WRAP_LENGTH;
         }
     }
 
+    /**
+     * Creates an instance that writes to an {@link OutputStream}, with a specific character set.
+     * @param out The {@code OutputStream} that will receive the output.
+     * @param charset The character set for converting {@code char}s to {@code byte}s.
+     */
     public PrefixingWriter(OutputStream out, Charset charset)
     {
         this.out = new OutputStreamWriter(out, charset);
     }
 
+    /**
+     * Creates an instance that writes to an {@link OutputStream}, with the default character set.
+     * @param out The {@code OutputStream} that will receive the output.
+     */
     public PrefixingWriter(OutputStream out)
     {
         this(out, Charset.defaultCharset());
     }
 
+    /**
+     * Creates an instance that writes to {@link System#out}, with the default character set.
+     */
     public PrefixingWriter()
     {
         this(System.out);
     }
 
+    /**
+     * Creates an instance that writes to another {@link Writer}.
+     * @param out The {@code Writer} that will receive the output.
+     */
     public PrefixingWriter(Writer out)
     {
         this.out = out;
     }
 
+    /**
+     * Sets the maximum length of lines, in characters, before they are wrapped. This includes
+     * both the prefix and the normal text to be displayed.
+     *
+     * Call {@link isWrapLengthAuto} first, if needed, to determine whether the existing wrap
+     * length was able to be automatically determined.
+     *
+     * @param wrapLength The new maximum line length.
+     */
     public void setWrapLength(int wrapLength)
     {
         this.wrapLength = wrapLength;
+        this.wrapLengthAuto = false;
     }
 
-    public int getWrapLength()         { return wrapLength; }
-    public int getLineLength()         { return lineLength; }
-    public int getTotalLineSpace()     { return getLineCapacity(0); }
-    public int getRemainingLineSpace() { return getLineCapacity(lineLength); }
+    /**
+     * Reports whether the current wrap length was automatically determined from the terminal
+     * environment.
+     *
+     * @return {@code true} if the wrap length was automatically determined, or {@code false} if it
+     * is either a default value, or was manually specified.
+     */
+    public boolean isWrapLengthAuto()
+    {
+        return wrapLengthAuto;
+    }
 
-    public int getLineCapacity(int deduction)
+    /**
+     * Retrieves the existing maximum length of a line, in characters, <em>including</em> any
+     * prefixes, before the line is wrapped.
+     *
+     * <p>This is a fixed value unless/until it is altered by calling {@link setWrapLength}.
+     *
+     * @return The maximum line length.
+     */
+    public int getWrapLength()
+    {
+        return wrapLength;
+    }
+
+    /**
+     * Retrieves the number of characters written so far to the current line, <em>excluding</em>
+     * any prefixes.
+     *
+     * <p>This value changes each time any text is written.
+     *
+     * @return The current line length.
+     */
+    public int getLineLength()
+    {
+        return lineLength;
+    }
+
+    /**
+     * Retrieves the maximum allocation of characters to the current line, including any already
+     * written, but <em>excluding</em> any prefixes. In other words, the "line space" is the number
+     * of characters able to fit in between the prefixes on the left, and the wrapping limit on the
+     * right.
+     *
+     * <p>This value will reduce when adding a new prefix (as the prefix takes up space otherwise
+     * used for "normal" text output), and increase when removing a prefix.
+     *
+     * @return The current line space.
+     */
+    public int getLineSpace()
+    {
+        return getLineCapacity(0);
+    }
+
+    /**
+     * Retrieves the number of <em>additional</em> characters that could be written to the current
+     * line before it wraps.
+     *
+     * @return The number of characters able to be written to the current line without wrapping.
+     */
+    public int getRemainingLineSpace()
+    {
+        return getLineCapacity(lineLength);
+    }
+
+    private int getLineCapacity(int deduction)
     {
         if(wrapLength <= 0 || wrapLength == Integer.MAX_VALUE)
         {
@@ -106,11 +195,23 @@ public class PrefixingWriter extends Writer
         return capacity;
     }
 
+    /**
+     * Causes an additional prefix to be output at the start of each line. The prefix is appended to
+     * the end (right) of any existing prefixes, so that from the next line onwards (until another
+     * prefix change is made) the new prefix comes immediately before any "normal" (non-prefix)
+     * text.
+     *
+     * @param newPrefix The new prefix string to append.
+     */
     public void addPrefix(String newPrefix)
     {
         prefixes.addLast(newPrefix);
     }
 
+    /**
+     * Removes the most-recently added prefix string, so that the set of prefixes reverts to the
+     * state prior to the last addition.
+     */
     public void removePrefix()
     {
         if(prefixes.isEmpty())
@@ -121,17 +222,40 @@ public class PrefixingWriter extends Writer
         this.nextLinePrefix = null;
     }
 
+    /**
+     * A convenience method that removes one prefix and adds another.
+     * @param newPrefix A replacement for the most-recently added prefix.
+     */
     public void replacePrefix(String newPrefix)
     {
         removePrefix();
         addPrefix(newPrefix);
     }
 
+    /**
+     * Causes a prefix replacement to occur after the next line, generally where a particular prefix
+     * is only intended to occur once (at a time).
+     *
+     * <p>Generally the client code would call {@link addPrefix} or {@link replacePrefix} to set a
+     * particular one-time prefix, followed immediately by {@code replacePrefixAfterLine} to
+     * specify the prefix to come after it.
+     *
+     * <p>This effect cannot easily be achieved by the client code in other ways, because the
+     * transition from one line to the next may result from wrapping, which is not the client code's
+     * responsibility.
+     *
+     * @param nextLinePrefix The new prefix to replace the current one <em>after</em> the next line.
+     */
     public void replacePrefixAfterLine(String nextLinePrefix)
     {
         this.nextLinePrefix = nextLinePrefix;
     }
 
+    /**
+     * Outputs the prefixes. This is called immediately before the first characters are written
+     * after a new line. (It is not necessarily immediately called after all line breaks; we wait
+     * until we know there's more writing.)
+     */
     private void writePrefix() throws IOException
     {
         for(var prefix : prefixes)
@@ -142,7 +266,13 @@ public class PrefixingWriter extends Writer
         ansiState.write(out);
     }
 
-    protected void lineBreak() throws IOException
+    /**
+     * Effects a line break, whether because an actual '\n' was written, or because the text hit
+     * the wrapLength.
+     *
+     * <p>This is where we apply a replacement prefix that's been delayed until after the next line.
+     */
+    private void lineBreak() throws IOException
     {
         if(lineLength == 0)
         {
@@ -162,6 +292,11 @@ public class PrefixingWriter extends Writer
         }
     }
 
+    /**
+     * Writes a single character (contained in the 16 low-order bits of the given integer).
+     * @param ch The character value to be written.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void write(int ch) throws IOException
     {
@@ -185,6 +320,10 @@ public class PrefixingWriter extends Writer
         }
     }
 
+    /**
+     * Writes part of an array of characters, assumed to <em>not</em> contain any ANSI codes or
+     * line breaks. This method focuses on <em>wrapping</em> the output text as needed.
+     */
     private void writeSegment(char[] buf, int off, int len) throws IOException
     {
         if(wrapLength == 0)
@@ -224,6 +363,14 @@ public class PrefixingWriter extends Writer
         }
     }
 
+    /**
+     * Writes part of an array of characters.
+     * @param buf Array of characters.
+     * @param off Offset from which to start writing characters.
+     * @param len Number of characters to write.
+     * @throws IndexOutOfBoundsException If {@code off} or {@code len} are invalid.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void write(char[] buf, int off, int len) throws IOException
     {
@@ -285,18 +432,36 @@ public class PrefixingWriter extends Writer
         }
     }
 
+    /**
+     * Writes part of an array of characters.
+     * @param buf Array of characters.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void write(char[] buf) throws IOException
     {
         write(buf, 0, buf.length);
     }
 
+    /**
+     * Writes a string.
+     * @param s String to be written.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void write(String s) throws IOException
     {
         write(s.toCharArray());
     }
 
+    /**
+     * Writes part of a string.
+     * @param s String to be written.
+     * @param off Offset from which to start writing characters.
+     * @param len Number of characters to write.
+     * @throws IndexOutOfBoundsException If {@code off} or {@code len} are invalid.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void write(String s, int off, int len) throws IOException
     {
@@ -304,12 +469,20 @@ public class PrefixingWriter extends Writer
         write(buf, 0, buf.length);
     }
 
+    /**
+     * Flushes the underlying stream/writer.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void flush() throws IOException
     {
         out.flush();
     }
 
+    /**
+     * Closes the underlying stream/writer.
+     * @throws IOException If an I/O error occurs.
+     */
     @Override
     public void close() throws IOException
     {
