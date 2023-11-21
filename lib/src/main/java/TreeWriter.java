@@ -168,17 +168,19 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Retrieves the number of characters written so far to the current line, <em>excluding</em>
-     * any tree-drawing characters at the beginning, if any (based on the underlying
-     * {@code PrefixingWriter}).
+     * Retrieves the number of characters written so far to the current line, including tree-drawing
+     * characters at the beginning, if any (based on the underlying {@code PrefixingWriter}).
      *
-     * <p>This value changes each time any text is written.
+     * <p>This value changes each time any text is written. Note that a value of 0 is somewhat
+     * special, as any further text written at this point will cause an increase <em>not just</em>
+     * by the length of the text, but also by a number of tree-drawing characters, needing to be
+     * output first.
      *
      * @return The current line length.
      */
-    public int getLineLength()
+    public int getProgressiveLineLength()
     {
-        return prefixOut.getLineLength();
+        return prefixOut.getProgressiveLineLength();
     }
 
     /**
@@ -259,7 +261,7 @@ public class TreeWriter extends PrintWriter
         depth++;
         try
         {
-            if(prefixOut.getLineLength() > 0)
+            if(prefixOut.getProgressiveLineLength() > 0)
             {
                 prefixOut.write('\n');
             }

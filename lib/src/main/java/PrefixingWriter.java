@@ -141,14 +141,16 @@ public class PrefixingWriter extends Writer
     }
 
     /**
-     * Retrieves the number of characters written so far to the current line, <em>excluding</em>
-     * any prefixes.
+     * Retrieves the number of characters written so far to the current line, including prefixes.
      *
-     * <p>This value changes each time any text is written.
+     * <p>This value changes each time any text is written. Note that a value of 0 is somewhat
+     * special, as any further text written at this point will cause an increase <em>not just</em>
+     * by the length of the text, but also by the prefix length, since the prefixes must be output
+     * first.
      *
      * @return The current line length.
      */
-    public int getLineLength()
+    public int getProgressiveLineLength()
     {
         return lineLength;
     }
@@ -263,6 +265,12 @@ public class PrefixingWriter extends Writer
             out.write(prefix);
             lineLength += prefix.length();
         }
+        if(lineLength > wrapLength)
+        {
+            // Here, the prefixes have become so long that they take up all of (or more than) the
+            // line capacity. This will look awful, but we just have to accept it and work with it.
+            lineLength %= wrapLength;
+        }
         ansiState.write(out);
     }
 
@@ -336,10 +344,10 @@ public class PrefixingWriter extends Writer
         }
         else
         {
-            if(lineLength >= wrapLength)
-            {
-                lineLength %= wrapLength;
-            }
+            // if(lineLength >= wrapLength)
+            // {
+            //     lineLength %= wrapLength;
+            // }
 
             if(lineLength == 0)
             {
