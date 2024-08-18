@@ -168,19 +168,15 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Retrieves the number of characters written so far to the current line, including tree-drawing
-     * characters at the beginning, if any (based on the underlying {@code PrefixingWriter}).
+     * Retrieves the number of (visible) characters written so far to the current line,
+     * <em>excluding</em> any tree-drawing characters (based on the underlying
+     * {@code PrefixingWriter}). This value changes each time any text is written.
      *
-     * <p>This value changes each time any text is written. Note that a value of 0 is somewhat
-     * special, as any further text written at this point will cause an increase <em>not just</em>
-     * by the length of the text, but also by a number of tree-drawing characters, needing to be
-     * output first.
-     *
-     * @return The current line length.
+     * @return The number of visible characters after any tree lines.
      */
-    public int getProgressiveLineLength()
+    public int getUsedLineSpace()
     {
-        return prefixOut.getProgressiveLineLength();
+        return prefixOut.getUsedLineSpace();
     }
 
     /**
@@ -194,7 +190,8 @@ public class TreeWriter extends PrintWriter
      * line are set aside to draw the tree structure. The value will increase again when ascending
      * back up the tree.
      *
-     * @return The current line space.
+     * @return The current line space, or {@link Integer#MAX_VALUE} if the space is effectively
+     * unlimited.
      */
     public int getLineSpace()
     {
@@ -202,10 +199,11 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Retrieves the number of <em>additional</em> characters that could be written to the current
+     * Retrieves the number of <em>additional</em> characters that can be written to the current
      * line before it wraps (based on the underlying {@code PrefixingWriter}).
      *
-     * @return The number of characters able to be written to the current line without wrapping.
+     * @return The number of characters able to be written to the current line without wrapping, or
+     * {@link Integer#MAX_VALUE} if the space is effectively unlimited.
      */
     public int getRemainingLineSpace()
     {
@@ -261,12 +259,13 @@ public class TreeWriter extends PrintWriter
         depth++;
         try
         {
-            if(prefixOut.getProgressiveLineLength() > 0)
+            if(prefixOut.getUsedLineSpace() > 0)
             {
                 prefixOut.write('\n');
             }
 
-            String connector, padding;
+            String connector;
+            String padding;
             if(lastSibling)
             {
                 connector = nodeOptions.getEndConnector();
@@ -307,14 +306,20 @@ public class TreeWriter extends PrintWriter
             setError();
         }
 
-        var nextSiblingOptions = nodeOptions.getNextSiblingOptions();
-        var firstChildOptions = nodeOptions.getFirstChildOptions();
-        if((nextSiblingOptions != null || firstChildOptions != null) && depth >= nextOptions.length)
+        // var nextSiblingOptions = nodeOptions.getNextSiblingOptions();
+        // var firstChildOptions = nodeOptions.getFirstChildOptions();
+        // if((nextSiblingOptions != null || firstChildOptions != null) && depth >= nextOptions.length)
+        // {
+        //     nextOptions = Arrays.copyOf(nextOptions, depth * 2);
+        // }
+        // nextOptions[depth - 1] = nextSiblingOptions;
+        // nextOptions[depth] = firstChildOptions;
+        if(depth >= nextOptions.length)
         {
             nextOptions = Arrays.copyOf(nextOptions, depth * 2);
         }
-        nextOptions[depth - 1] = nextSiblingOptions;
-        nextOptions[depth] = firstChildOptions;
+        nextOptions[depth - 1] = nodeOptions.getNextSiblingOptions();
+        nextOptions[depth] = nodeOptions.getFirstChildOptions();
     }
 
     /**

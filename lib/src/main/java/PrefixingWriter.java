@@ -48,6 +48,7 @@ public class PrefixingWriter extends Writer
 
     private Writer out;
     private Deque<String> prefixes = new LinkedList<>();
+    private int totalPrefixLength = 0;
     private String nextLinePrefix = null;
     private int lineLength = 0;
 
@@ -55,7 +56,13 @@ public class PrefixingWriter extends Writer
     private boolean wrapLengthAuto;
     private AnsiState ansiState = new AnsiState();
 
+    /**
+     * Creates an instance that writes to another {@link Writer}.
+     * @param out The {@code Writer} that will receive the output.
+     */
+    public PrefixingWriter(Writer out)
     {
+        this.out = out;
         wrapLength = AnsiConsole.getTerminalWidth();
         wrapLengthAuto = (wrapLength > 0);
         if(!wrapLengthAuto)
@@ -71,7 +78,7 @@ public class PrefixingWriter extends Writer
      */
     public PrefixingWriter(OutputStream out, Charset charset)
     {
-        this.out = new OutputStreamWriter(out, charset);
+        this(new OutputStreamWriter(out, charset));
     }
 
     /**
@@ -91,14 +98,6 @@ public class PrefixingWriter extends Writer
         this(System.out);
     }
 
-    /**
-     * Creates an instance that writes to another {@link Writer}.
-     * @param out The {@code Writer} that will receive the output.
-     */
-    public PrefixingWriter(Writer out)
-    {
-        this.out = out;
-    }
 
     /**
      * Sets the maximum length of lines, in characters, before they are wrapped. This includes
@@ -128,8 +127,8 @@ public class PrefixingWriter extends Writer
     }
 
     /**
-     * Retrieves the existing maximum length of a line, in characters, <em>including</em> any
-     * prefixes, before the line is wrapped.
+     * Retrieves the existing maximum length of a line, in characters, including prefixes, before
+     * the line is wrapped.
      *
      * <p>This is a fixed value unless/until it is altered by calling {@link setWrapLength}.
      *
@@ -141,60 +140,51 @@ public class PrefixingWriter extends Writer
     }
 
     /**
-     * Retrieves the number of characters written so far to the current line, including prefixes.
+     * Retrieves the number of (visible) characters written so far to the current line,
+     * <em>excluding</em> prefixes. This value changes each time any text is written.
      *
-     * <p>This value changes each time any text is written. Note that a value of 0 is somewhat
-     * special, as any further text written at this point will cause an increase <em>not just</em>
-     * by the length of the text, but also by the prefix length, since the prefixes must be output
-     * first.
-     *
-     * @return The current line length.
+     * @return The number of visible characters after the prefix.
      */
-    public int getProgressiveLineLength()
+    public int getUsedLineSpace()
     {
-        return lineLength;
+        return (lineLength == 0) ? 0 : (lineLength - totalPrefixLength);
     }
 
     /**
-     * Retrieves the maximum allocation of characters to the current line, including any already
-     * written, but <em>excluding</em> any prefixes. In other words, the "line space" is the number
-     * of characters able to fit in between the prefixes on the left, and the wrapping limit on the
-     * right.
+     * Retrieves the maximum allocation of (visible) characters to the current line, including any
+     * already written, but <em>excluding</em> any prefixes. In other words, the "line space" is the
+     * number of visible characters able to fit in between the prefixes on the left, and the
+     * wrapping limit on the right.
      *
      * <p>This value will reduce when adding a new prefix (as the prefix takes up space otherwise
      * used for "normal" text output), and increase when removing a prefix.
      *
-     * @return The current line space.
+     * @return The current line space, or {@link Integer#MAX_VALUE} if the space is effectively
+     * unlimited.
      */
     public int getLineSpace()
-    {
-        return getLineCapacity(0);
-    }
-
-    /**
-     * Retrieves the number of <em>additional</em> characters that could be written to the current
-     * line before it wraps.
-     *
-     * @return The number of characters able to be written to the current line without wrapping.
-     */
-    public int getRemainingLineSpace()
-    {
-        return getLineCapacity(lineLength);
-    }
-
-    private int getLineCapacity(int deduction)
     {
         if(wrapLength <= 0 || wrapLength == Integer.MAX_VALUE)
         {
             return Integer.MAX_VALUE;
         }
+        return wrapLength - totalPrefixLength;
+    }
 
-        int capacity = wrapLength - deduction;
-        for(var prefix : prefixes)
+    /**
+     * Retrieves the number of <em>additional</em> (visible) characters that can be written to the
+     * current line before it wraps.
+     *
+     * @return The number of characters able to be written to the current line without wrapping, or
+     * {@link Integer#MAX_VALUE} if the space is effectively unlimited.
+     */
+    public int getRemainingLineSpace()
+    {
+        if(wrapLength <= 0 || wrapLength == Integer.MAX_VALUE)
         {
-            capacity -= prefix.length();
+            return Integer.MAX_VALUE;
         }
-        return capacity;
+        return wrapLength - lineLength;
     }
 
     /**
@@ -207,7 +197,14 @@ public class PrefixingWriter extends Writer
      */
     public void addPrefix(String newPrefix)
     {
-        prefixes.addLast(newPrefix);
+        int visibleLen = AnsiState.visibleLength(newPrefix);
+        var p = newPrefix;
+        if(visibleLen != newPrefix.length() && !newPrefix.endsWith(AnsiState.RESET))
+        {
+            p += AnsiState.RESET;
+        }
+        prefixes.addLast(p);
+        totalPrefixLength += visibleLen;
     }
 
     /**
@@ -220,7 +217,7 @@ public class PrefixingWriter extends Writer
         {
             throw new IllegalStateException("No prefix currently exists");
         }
-        prefixes.removeLast();
+        totalPrefixLength -= AnsiState.visibleLength(prefixes.removeLast());
         this.nextLinePrefix = null;
     }
 
@@ -263,8 +260,8 @@ public class PrefixingWriter extends Writer
         for(var prefix : prefixes)
         {
             out.write(prefix);
-            lineLength += prefix.length();
         }
+        lineLength += totalPrefixLength;
         if(lineLength > wrapLength)
         {
             // Here, the prefixes have become so long that they take up all of (or more than) the
@@ -344,29 +341,26 @@ public class PrefixingWriter extends Writer
         }
         else
         {
-            // if(lineLength >= wrapLength)
-            // {
-            //     lineLength %= wrapLength;
-            // }
-
             if(lineLength == 0)
             {
                 writePrefix();
             }
 
-            while((lineLength + len) > wrapLength)
+            int currentOff = off;
+            int remainingLen = len;
+            while((lineLength + remainingLen) > wrapLength)
             {
                 int partLength = wrapLength - lineLength;
-                out.write(buf, off, partLength);
+                out.write(buf, currentOff, partLength);
                 lineBreak();
                 writePrefix();
-                off += partLength;
-                len -= partLength;
+                currentOff += partLength;
+                remainingLen -= partLength;
             }
-            if(len > 0)
+            if(remainingLen > 0)
             {
-                out.write(buf, off, len);
-                lineLength += len;
+                out.write(buf, currentOff, remainingLen);
+                lineLength += remainingLen;
             }
         }
     }

@@ -14,6 +14,7 @@ public class TreeWriterDemo
         customNodes(writer);
         labels(writer);
         optionChains(writer);
+        lineSpace(writer);
     }
 
     static void dataStructure(TreeWriter writer)
@@ -93,9 +94,9 @@ public class TreeWriterDemo
         var originalOpts = writer.getOptions().copy();
         writer.getOptions()
               .topMargin(1)
-              .parentLine("\u2551\u2551")
-              .midConnector("\u2560\u256c\u2550\u2550 ")
-              .endConnector("\u255a\u2569\u2550\u2550 ");
+              .parentLine("\033[32m\u2551\u2551")
+              .midConnector("\033[32m\u2560\033[35m\u256c\u2550\u2550 ")
+              .endConnector("\033[32m\u255a\033[35m\u2569\u2550\u2550 ");
 
         writer.println();
         writer.println(blueBg + s.repeat(15) + reset);
@@ -167,6 +168,8 @@ public class TreeWriterDemo
         writer.println("child");
         writer.endNode();
         writer.endNode();
+
+        writer.setOptions(new NodeOptions());
     }
 
     static void optionChains(TreeWriter writer)
@@ -213,8 +216,29 @@ public class TreeWriterDemo
         // provided beforehand will cause an alternation between opts1 and opts3.
         for(var i = 0; i < 5; i++)
         {
-            writer.startNode(i == 4);
+            writer.startNode(false);
             writer.println("sibling");
+            writer.endNode();
+        }
+
+        writer.startNode(true, writer.getOptions());
+        writer.println("end");
+        writer.endNode();
+    }
+
+    static void lineSpace(TreeWriter writer)
+    {
+        writer.println();
+        for(var i = 0; i < 5; i++)
+        {
+            writer.print("left-aligned");
+            writer.print(" ".repeat(writer.getRemainingLineSpace() - "right-aligned".length()));
+            writer.print("right-aligned");
+            writer.startNode(true);
+        }
+        writer.println("end");
+        for(var i = 0; i < 5; i++)
+        {
             writer.endNode();
         }
     }

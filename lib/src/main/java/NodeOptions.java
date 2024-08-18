@@ -7,17 +7,17 @@ import java.util.function.Consumer;
  */
 public class NodeOptions
 {
-    private int topMargin = 0;
-    private int topConnectorLength = 0;
-    private String topConnector = "\u250a";
-    private String parentLine = "\u2502";
-    private String midConnector = "\u251c\u2500\u2500 ";
-    private String endConnector = "\u2514\u2500\u2500 ";
-    private String midPaddingPrefix = null;
-    private String endPaddingPrefix = null;
+    private int _topMargin = 0;
+    private int _topConnectorLength = 0;
+    private String _topConnector = "\u250a";
+    private String _parentLine = "\u2502";
+    private String _midConnector = "\u251c\u2500\u2500 ";
+    private String _endConnector = "\u2514\u2500\u2500 ";
+    private String _midPaddingPrefix = null;
+    private String _endPaddingPrefix = null;
 
-    private NodeOptions nextSiblingOptions = null;
-    private NodeOptions firstChildOptions = null;
+    private NodeOptions _nextSiblingOptions = null;
+    private NodeOptions _firstChildOptions = null;
 
     /**
      * Creates a separate copy of this set of node options.
@@ -26,16 +26,16 @@ public class NodeOptions
     public NodeOptions copy()
     {
         var newOpts = new NodeOptions();
-        newOpts.topMargin = topMargin;
-        newOpts.topConnectorLength = topConnectorLength;
-        newOpts.topConnector = topConnector;
-        newOpts.parentLine = parentLine;
-        newOpts.midConnector = midConnector;
-        newOpts.endConnector = endConnector;
-        newOpts.midPaddingPrefix = midPaddingPrefix;
-        newOpts.endPaddingPrefix = endPaddingPrefix;
-        newOpts.nextSiblingOptions = nextSiblingOptions;
-        newOpts.firstChildOptions = firstChildOptions;
+        newOpts._topMargin = _topMargin;
+        newOpts._topConnectorLength = _topConnectorLength;
+        newOpts._topConnector = _topConnector;
+        newOpts._parentLine = _parentLine;
+        newOpts._midConnector = _midConnector;
+        newOpts._endConnector = _endConnector;
+        newOpts._midPaddingPrefix = _midPaddingPrefix;
+        newOpts._endPaddingPrefix = _endPaddingPrefix;
+        newOpts._nextSiblingOptions = _nextSiblingOptions;
+        newOpts._firstChildOptions = _firstChildOptions;
         return newOpts;
     }
 
@@ -51,7 +51,7 @@ public class NodeOptions
      */
     public NodeOptions topMargin(int topMargin)
     {
-        this.topMargin = topMargin;
+        this._topMargin = topMargin;
         return this;
     }
 
@@ -71,7 +71,7 @@ public class NodeOptions
      */
     public NodeOptions topConnectorLength(int topConnectorLength)
     {
-        this.topConnectorLength = topConnectorLength;
+        this._topConnectorLength = topConnectorLength;
         return this;
     }
 
@@ -90,7 +90,7 @@ public class NodeOptions
      */
     public NodeOptions topConnector(String topConnector)
     {
-        this.topConnector = topConnector;
+        this._topConnector = topConnector;
         return this;
     }
 
@@ -105,8 +105,8 @@ public class NodeOptions
      */
     public NodeOptions parentLine(String parentLine)
     {
-        this.parentLine = parentLine;
-        midPaddingPrefix = null;
+        this._parentLine = parentLine;
+        _midPaddingPrefix = null;
         return this;
     }
 
@@ -128,8 +128,8 @@ public class NodeOptions
      */
     public NodeOptions midConnector(String midConnector)
     {
-        this.midConnector = midConnector;
-        midPaddingPrefix = null;
+        this._midConnector = midConnector;
+        _midPaddingPrefix = null;
         return this;
     }
 
@@ -146,8 +146,8 @@ public class NodeOptions
      */
     public NodeOptions endConnector(String endConnector)
     {
-        this.endConnector = endConnector;
-        endPaddingPrefix = null;
+        this._endConnector = endConnector;
+        _endPaddingPrefix = null;
         return this;
     }
 
@@ -159,12 +159,12 @@ public class NodeOptions
      */
     public NodeOptions asciiLines()
     {
-        topConnector = "|";
-        parentLine = "|";
-        midConnector = "+-- ";
-        endConnector = "\\-- ";
-        midPaddingPrefix = "|   ";
-        endPaddingPrefix = "    ";
+        _topConnector = "|";
+        _parentLine = "|";
+        _midConnector = "+-- ";
+        _endConnector = "\\-- ";
+        _midPaddingPrefix = "|   ";
+        _endPaddingPrefix = "    ";
         return this;
     }
 
@@ -178,7 +178,7 @@ public class NodeOptions
      */
     public NodeOptions asLabel()
     {
-        this.midConnector = getMidPaddingPrefix();
+        this._midConnector = getMidPaddingPrefix();
         return this;
     }
 
@@ -223,7 +223,7 @@ public class NodeOptions
      */
     public NodeOptions nextSiblingOptions(NodeOptions nextSiblingOptions)
     {
-        this.nextSiblingOptions = nextSiblingOptions;
+        this._nextSiblingOptions = nextSiblingOptions;
         return this;
     }
 
@@ -252,7 +252,7 @@ public class NodeOptions
      */
     public NodeOptions firstChildOptions(NodeOptions firstChildOptions)
     {
-        this.firstChildOptions = firstChildOptions;
+        this._firstChildOptions = firstChildOptions;
         return this;
     }
 
@@ -268,11 +268,11 @@ public class NodeOptions
      */
     public NodeOptions nextSiblingOptions(Consumer<NodeOptions> init)
     {
-        if(nextSiblingOptions == null)
+        if(_nextSiblingOptions == null)
         {
-            nextSiblingOptions = copy();
+            _nextSiblingOptions = copy();
         }
-        init.accept(nextSiblingOptions);
+        init.accept(_nextSiblingOptions);
         return this;
     }
 
@@ -288,11 +288,11 @@ public class NodeOptions
      */
     public NodeOptions firstChildOptions(Consumer<NodeOptions> init)
     {
-        if(firstChildOptions == null)
+        if(_firstChildOptions == null)
         {
-            firstChildOptions = copy();
+            _firstChildOptions = copy();
         }
-        init.accept(firstChildOptions);
+        init.accept(_firstChildOptions);
         return this;
     }
 
@@ -304,7 +304,7 @@ public class NodeOptions
      */
     public NodeOptions getNextSiblingOptions()
     {
-        return nextSiblingOptions;
+        return _nextSiblingOptions;
     }
 
     /**
@@ -314,7 +314,7 @@ public class NodeOptions
      */
     public NodeOptions getFirstChildOptions()
     {
-        return firstChildOptions;
+        return _firstChildOptions;
     }
 
     /**
@@ -324,7 +324,7 @@ public class NodeOptions
      */
     public int getTopMargin()
     {
-        return topMargin;
+        return _topMargin;
     }
 
     /**
@@ -334,7 +334,7 @@ public class NodeOptions
      */
     public int getTopConnectorLength()
     {
-        return topConnectorLength;
+        return _topConnectorLength;
     }
 
     /**
@@ -344,7 +344,7 @@ public class NodeOptions
      */
     public String getTopConnector()
     {
-        return topConnector;
+        return _topConnector;
     }
 
     /**
@@ -354,7 +354,7 @@ public class NodeOptions
      */
     public String getParentLine()
     {
-        return parentLine;
+        return _parentLine;
     }
 
     /**
@@ -364,7 +364,7 @@ public class NodeOptions
      */
     public String getMidConnector()
     {
-        return midConnector;
+        return _midConnector;
     }
 
     /**
@@ -374,7 +374,7 @@ public class NodeOptions
      */
     public String getEndConnector()
     {
-        return endConnector;
+        return _endConnector;
     }
 
     /**
@@ -387,13 +387,14 @@ public class NodeOptions
      */
     public String getMidPaddingPrefix()
     {
-        if(midPaddingPrefix == null)
+        if(_midPaddingPrefix == null)
         {
-            midPaddingPrefix =
-                parentLine +
-                " ".repeat(Math.max(0, midConnector.length() - parentLine.length()));
+            _midPaddingPrefix =
+                _parentLine +
+                " ".repeat(Math.max(0, AnsiState.visibleLength(_midConnector) -
+                                       AnsiState.visibleLength(_parentLine)));
         }
-        return midPaddingPrefix;
+        return _midPaddingPrefix;
     }
 
     /**
@@ -405,11 +406,11 @@ public class NodeOptions
      */
     public String getEndPaddingPrefix()
     {
-        if(endPaddingPrefix == null)
+        if(_endPaddingPrefix == null)
         {
-            endPaddingPrefix = " ".repeat(endConnector.length());
+            _endPaddingPrefix = " ".repeat(AnsiState.visibleLength(_endConnector));
         }
-        return endPaddingPrefix;
+        return _endPaddingPrefix;
     }
 
 }

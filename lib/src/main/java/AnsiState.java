@@ -1,5 +1,6 @@
 package au.djac.treewriter;
 import java.io.*;
+import java.util.*;
 
 /**
  * Tracks the colour/font state of console text, in response to ANSI escape sequences. This is used
@@ -11,6 +12,9 @@ import java.io.*;
  * receives via the {@link update update} method in a buffer. You can then call {@link write write}
  * to have it output the buffer contents in order to restore the colour state. If/when an SGR reset
  * code is received (where one of the numbers in the escape sequence is 0), the buffer is cleared.
+ *
+ * <p>Additionally, {@link visibleLength} is tangentially-related to the rest of the class, and
+ * just finds string lengths excluding ANSI escape sequences.
  */
 public class AnsiState
 {
@@ -18,7 +22,52 @@ public class AnsiState
         colour/font settings. */
     public static final String RESET = "\033[m";
 
-    private StringBuffer colourCode = new StringBuffer();
+    private static Map<String,Integer> visibleLengths = new HashMap<>();
+
+    /**
+     * Utility method for computing (and caching) the number of characters in a string that would
+     * actually be printed to the terminal, which excludes characters making up ANSI escape
+     * sequences. For instance, the string "\033[1mHello\033[m" has a total length of 12, but a
+     * visible length of 5.
+     *
+     * @param ansiString The string to check.
+     * @return The number of characters to be displayed.
+     */
+    public static int visibleLength(String ansiString)
+    {
+        return visibleLengths.computeIfAbsent(
+            ansiString,
+            s ->
+            {
+                int len = ansiString.length();
+                int visLen = 0;
+
+                int i = 0;
+                while(i < len)
+                {
+                    if(i < (len - 1) && ansiString.charAt(i) == '\033'
+                                     && ansiString.charAt(i + 1) == '[')
+                    {
+                        i += 2;
+                        char ch = ansiString.charAt(i);
+                        while(i < len && ch >= 0x20 && ch <= 0x3f)
+                        {
+                            i++;
+                            ch = ansiString.charAt(i);
+                        }
+                    }
+                    else
+                    {
+                        visLen++;
+                    }
+                    i++;
+                }
+                return visLen;
+            });
+    }
+
+    @SuppressWarnings("PMD.AvoidStringBufferField")
+    private final StringBuilder colourCode = new StringBuilder();
 
     /** Creates a new instance. */
     public AnsiState() {}
@@ -68,14 +117,14 @@ public class AnsiState
             // Starts with '\033[;... or \033[0;...; i.e., a reset code followed by something else.
             // This means the state gets replaced.
             colourCode.delete(0, colourCode.length());
-            colourCode.append("\033[");
-            colourCode.append(buf, off + 2, len - 2);
+            colourCode.append("\033[")
+                      .append(buf, off + 2, len - 2);
         }
         else
         {
             // No reset code; the state must be appended.
-            colourCode.append("\033[");
-            colourCode.append(buf, off, len);
+            colourCode.append("\033[")
+                      .append(buf, off, len);
         }
     }
 
@@ -88,4 +137,6 @@ public class AnsiState
     {
         w.append(colourCode);
     }
+
+
 }
