@@ -7,7 +7,6 @@ plugins {
 }
 
 group = 'au.djac'
-// name = 'treewriter'
 version = '1.0.0'
 
 repositories {
@@ -16,6 +15,9 @@ repositories {
 
 dependencies {
     implementation 'org.fusesource.jansi:jansi:2.4.1'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
+    testImplementation 'org.apache.groovy:groovy:4.0.22'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 java {
@@ -27,11 +29,14 @@ java {
 }
 
 tasks.withType(JavaCompile) {
-    options.compilerArgs << "-Xlint:all,-serial"
+    options.compilerArgs << '-Xlint:all,-serial'
 }
 
 tasks.withType(Test) {
     useJUnitPlatform()
+    testLogging {
+        exceptionFormat "full"
+    }
 }
 
 pmd {
@@ -94,8 +99,8 @@ publishing {
 //             name = 'GitHubPackages'
 //             url = 'https://maven.pkg.github.com/davidjacooper/treewriter'
 //             credentials {
-//                 username = System.getenv("GITHUB_USERNAME")
-//                 password = System.getenv("GITHUB_TOKEN")
+//                 username = System.getenv('GITHUB_USERNAME')
+//                 password = System.getenv('GITHUB_TOKEN')
 //             }
 //         }
     }

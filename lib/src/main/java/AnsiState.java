@@ -107,7 +107,7 @@ public class AnsiState
         // but there's likely a limit to what we can do with them.)
         if(len == 0 || buf[off + len - 1] != 'm') { return; }
 
-        if(len == 1) // \033[m
+        if(len == 1 || (len == 2 && buf[off] == '0')) // \033[m or \033[0m
         {
             // Simple reset code
             colourCode.delete(0, colourCode.length());
@@ -118,7 +118,7 @@ public class AnsiState
             // This means the state gets replaced.
             colourCode.delete(0, colourCode.length());
             colourCode.append("\033[")
-                      .append(buf, off + 2, len - 2);
+                      .append(buf, off, len);
         }
         else
         {

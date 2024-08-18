@@ -114,6 +114,11 @@ public class PrefixingWriter extends Writer
         this.wrapLengthAuto = false;
     }
 
+    // public void setWrapLimitPolicy(WrapLimitPolicy policy)
+    // {
+    //     this.wrapLimitPolicy = policy;
+    // }
+
     /**
      * Reports whether the current wrap length was automatically determined from the terminal
      * environment.
@@ -262,7 +267,7 @@ public class PrefixingWriter extends Writer
             out.write(prefix);
         }
         lineLength += totalPrefixLength;
-        if(lineLength > wrapLength)
+        if(lineLength >= wrapLength)
         {
             // Here, the prefixes have become so long that they take up all of (or more than) the
             // line capacity. This will look awful, but we just have to accept it and work with it.
@@ -352,6 +357,7 @@ public class PrefixingWriter extends Writer
             {
                 int partLength = wrapLength - lineLength;
                 out.write(buf, currentOff, partLength);
+                lineLength += partLength;
                 lineBreak();
                 writePrefix();
                 currentOff += partLength;
