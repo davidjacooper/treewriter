@@ -306,14 +306,6 @@ public class TreeWriter extends PrintWriter
             setError();
         }
 
-        // var nextSiblingOptions = nodeOptions.getNextSiblingOptions();
-        // var firstChildOptions = nodeOptions.getFirstChildOptions();
-        // if((nextSiblingOptions != null || firstChildOptions != null) && depth >= nextOptions.length)
-        // {
-        //     nextOptions = Arrays.copyOf(nextOptions, depth * 2);
-        // }
-        // nextOptions[depth - 1] = nextSiblingOptions;
-        // nextOptions[depth] = firstChildOptions;
         if(depth >= nextOptions.length)
         {
             nextOptions = Arrays.copyOf(nextOptions, depth * 2);
