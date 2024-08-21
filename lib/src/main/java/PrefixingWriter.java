@@ -114,11 +114,6 @@ public class PrefixingWriter extends Writer
         this.wrapLengthAuto = false;
     }
 
-    // public void setWrapLimitPolicy(WrapLimitPolicy policy)
-    // {
-    //     this.wrapLimitPolicy = policy;
-    // }
-
     /**
      * Reports whether the current wrap length was automatically determined from the terminal
      * environment.
@@ -324,6 +319,7 @@ public class PrefixingWriter extends Writer
             if(wrapLength > 0 && lineLength == wrapLength)
             {
                 lineBreak();
+                writePrefix();
             }
             out.write(ch);
             lineLength++;
@@ -384,14 +380,16 @@ public class PrefixingWriter extends Writer
     {
         if(off < 0) { throw new IndexOutOfBoundsException("Offset cannot be negative"); }
         if(len < 0) { throw new IndexOutOfBoundsException("Length cannot be negative"); }
-        if(off + len > buf.length)
+
+        int end = off + len;
+        if(end > buf.length)
         {
             throw new IndexOutOfBoundsException("Offset + length exceed the buffer size");
         }
 
         int start = off;
         int lookahead = off;
-        while(lookahead < len)
+        while(lookahead < end)
         {
             switch(buf[lookahead])
             {
@@ -402,10 +400,10 @@ public class PrefixingWriter extends Writer
                     }
                     int ansiCodeStart = lookahead;
                     lookahead++;
-                    if(lookahead < len && buf[lookahead] == '[')
+                    if(lookahead < end && buf[lookahead] == '[')
                     {
                         lookahead++;
-                        while(lookahead < len && 0x20 <= buf[lookahead] && buf[lookahead] <= 0x3f)
+                        while(lookahead < end && 0x20 <= buf[lookahead] && buf[lookahead] <= 0x3f)
                         {
                             lookahead++;
                         }
@@ -434,9 +432,9 @@ public class PrefixingWriter extends Writer
                     lookahead++;
             }
         }
-        if(start < len)
+        if(start < end)
         {
-            writeSegment(buf, start, len - start);
+            writeSegment(buf, start, end - start);
         }
     }
 
@@ -473,8 +471,9 @@ public class PrefixingWriter extends Writer
     @Override
     public void write(String s, int off, int len) throws IOException
     {
-        var buf = s.toCharArray();
-        write(buf, 0, buf.length);
+        // var buf = s.toCharArray();
+        // write(buf, 0, buf.length);
+        write(s.toCharArray(), off, len);
     }
 
     /**
