@@ -572,8 +572,9 @@ public class PrefixingWriter extends Writer
     @Override
     public void write(String s, int off, int len) throws IOException
     {
-        var buf = s.toCharArray();
-        write(buf, 0, buf.length);
+        // var buf = s.toCharArray();
+        // write(buf, 0, buf.length);
+        write(s.toCharArray(), off, len);
     }
 
     /**

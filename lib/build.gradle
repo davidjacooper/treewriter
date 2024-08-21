@@ -36,6 +36,7 @@ tasks.withType(Test) {
     useJUnitPlatform()
     testLogging {
         exceptionFormat "full"
+        events "failed", "passed", "skipped"
     }
 }
 
