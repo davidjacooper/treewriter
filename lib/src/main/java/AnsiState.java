@@ -129,32 +129,29 @@ public class AnsiState
         }
         // Sequence is ending; ch is the final character.
 
+        int len = newIndex - index;
         if(ch != 'm')
         {
             // Sequence isn't an SGR (select graphics rendition) code; ignore it.
             newIndex = index;
-            return true;
         }
-
-        int len = newIndex - index;
-        if(len == 3 || (len == 4 && firstCh == '0'))
+        else if(len == 3 || (len == 4 && firstCh == '0'))
         {
             // Simple reset code
             index = 0;
             newIndex = 0;
-            return true;
         }
-
-        if(index > 0 &&
+        else if(index > 0 &&
             (!digit(firstCh) || (firstCh == '0' && !digit(buffer[index + 3]))))
         {
             System.arraycopy(buffer, index, buffer, 0, len);
             index = len;
             newIndex = len;
-            return true;
         }
-
-        index = newIndex;
+        else
+        {
+            index = newIndex;
+        }
         return true;
     }
 
