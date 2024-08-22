@@ -61,8 +61,6 @@ public class PrefixingWriter extends Writer
     private boolean wrapLengthAuto;
 
     private CharState charState = CharState.NORMAL;
-    private char[] ansiBuffer = new char[10];
-    private int ansiIndex = 0;
     private AnsiState ansiState = new AnsiState();
 
     /**
@@ -328,7 +326,6 @@ public class PrefixingWriter extends Writer
                 {
                     case '\033':
                         charState = CharState.ESCAPE1;
-                        ansiIndex = 0;
                         out.write(ch);
                         break;
 
@@ -353,17 +350,8 @@ public class PrefixingWriter extends Writer
                 break;
 
             case ESCAPE2:
-                if(ansiIndex >= ansiBuffer.length)
+                if(ansiState.append((char)ch))
                 {
-                    char[] newBuf = new char[ansiBuffer.length * 2 + 1];
-                    System.arraycopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
-                    ansiBuffer = newBuf;
-                }
-                ansiBuffer[ansiIndex] = (char)ch;
-                ansiIndex++;
-                if(ch < 0x20 || 0x3f < ch)
-                {
-                    ansiState.update(ansiBuffer, 0, ansiIndex);
                     charState = CharState.NORMAL;
                 }
                 out.write(ch);
@@ -465,7 +453,6 @@ public class PrefixingWriter extends Writer
                 case ESCAPE1:
                     charState = (ch == '[') ? CharState.ESCAPE2 : CharState.NORMAL;
                     start = i + 1;
-                    ansiIndex = 0;
                     if(lineStart)
                     {
                         writePrefix();
@@ -474,21 +461,12 @@ public class PrefixingWriter extends Writer
                     break;
 
                 case ESCAPE2:
-                    if(ansiIndex >= ansiBuffer.length)
+                    if(lineStart)
                     {
-                        char[] newBuf = new char[ansiIndex * 2 + 1];
-                        System.arraycopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
-                        ansiBuffer = newBuf;
+                        writePrefix();
                     }
-                    ansiBuffer[ansiIndex] = ch;
-                    ansiIndex++;
-                    if(ch < 0x20 || 0x3f < ch)
+                    if(ansiState.append(ch))
                     {
-                        if(lineStart)
-                        {
-                            writePrefix();
-                        }
-                        ansiState.update(ansiBuffer, 0, ansiIndex);
                         out.write(buf, start, i - start + 1);
                         charState = CharState.NORMAL;
                         start = i + 1;
