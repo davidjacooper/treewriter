@@ -13,8 +13,8 @@ class PrefixingWriterTest extends Specification
         "write(char[])",
         "write(char[],int,int)",
         "write(int)",
-
         "write(String,0,1),write(int)",
+        "write(int),write(String,0,1)",
     ]
 
     @Shared Closure[] writeFunctions = [
@@ -58,6 +58,22 @@ class PrefixingWriterTest extends Specification
                 toggle = !toggle
             }
         },
+        {
+            pw, s ->
+            boolean toggle = false
+            for(var ch : s.chars)
+            {
+                if(toggle)
+                {
+                    pw.write(ch)
+                }
+                else
+                {
+                    pw.write("${ch}", 0, 1)
+                }
+                toggle = !toggle
+            }
+        },
     ]
 
     def setup()
@@ -66,7 +82,7 @@ class PrefixingWriterTest extends Specification
         pw = new PrefixingWriter(sw)
     }
 
-    def "trivial (#writeLabel)"()
+    def "trivial (#label)"()
     {
         // Without creating any nodes, or triggering wrapping
         given:
@@ -77,11 +93,11 @@ class PrefixingWriterTest extends Specification
         then:
             sw.toString() == s
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
-    def "line wrapping (#writeLabel)"()
+    def "line wrapping (#label)"()
     {
         given:
             pw.setWrapLength(6)
@@ -91,11 +107,11 @@ class PrefixingWriterTest extends Specification
             sw.toString() == "Hello \nworld \n".repeat(4) + "Hello \nworld "
 
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
-    def "simple nodes (#writeLabel)"()
+    def "simple nodes (#label)"()
     {
         given:
             pw.setWrapLength(100)
@@ -140,11 +156,11 @@ class PrefixingWriterTest extends Specification
                                 + "&&Level 2\n" )
 
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
-    def "wrapping nodes (#writeLabel)"()
+    def "wrapping nodes (#label)"()
     {
         given:
             pw.setWrapLength(6)
@@ -169,11 +185,11 @@ class PrefixingWriterTest extends Specification
                              + "!!!!!!Hello \n!!!!!!world\n"
                              + "!!!!!!!Hello\n!!!!!!! worl\n!!!!!!!d\n" )
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
-    def "non-wrapping with colour codes (#writeLabel)"()
+    def "non-wrapping with colour codes (#label)"()
     {
         given:
             pw.setWrapLength(11)
@@ -182,12 +198,12 @@ class PrefixingWriterTest extends Specification
         then:
             sw.toString().replace('\033','~') == "\033[31m\033[32mHello world\033[m".replace('\033','~')
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
 
-    def "wrapping with colour reset codes (#writeLabel)"()
+    def "wrapping with colour reset codes (#label)"()
     {
         given:
             pw.setWrapLength(6)
@@ -197,11 +213,11 @@ class PrefixingWriterTest extends Specification
         then:
             sw.toString().replace('\033','~') == "${a}Hel${a}lo ${a}\nw${a}orld\n".replace('\033','~')
         where:
-            writeLabel << writeLabels
+            label << writeLabels
             write << writeFunctions
     }
 
-    def "wrapping with full colour codes (#writeLabel)"()
+    def "wrapping with full colour codes (#label)"()
     {
         given:
             pw.setWrapLength(6)
@@ -214,7 +230,35 @@ class PrefixingWriterTest extends Specification
         then:
             sw.toString() == "${a}H${reset}e${b}l${a}lo ${reset}\n${b}${a}wo${c}rld ${reset}\n${c}ag${reset}ain\n"
         where:
-            writeLabel << writeLabels
+            label << writeLabels
+            write << writeFunctions
+    }
+
+    def "wrapping with prefix colour codes (#label)"()
+    {
+        given:
+            pw.setWrapLength(8)
+        when:
+            pw.addPrefix("\033[31m!\033[32m!\033[m")
+            write(pw, "Hello world\n")
+        then:
+            sw.toString() == "\033[31m!\033[32m!\033[mHello \n\033[31m!\033[32m!\033[mworld\n"
+        where:
+            label << writeLabels
+            write << writeFunctions
+    }
+
+    def "very long ansi codes (#label)"()
+    {
+        given:
+            pw.setWrapLength(100)
+        when:
+            var s = "Hello \033[31;32;33;34;35;36;37;38;39;40;41;42;43;44;45;46;47;48;49mworld"
+            write(pw, s)
+        then:
+            sw.toString() == s
+        where:
+            label << writeLabels
             write << writeFunctions
     }
 }
