@@ -56,6 +56,7 @@ public class PrefixingWriter extends Writer
     private int totalPrefixLength = 0;
     private String nextLinePrefix = null;
     private int lineLength = 0;
+    private boolean lineStart = true;
 
     private int wrapLength;
     private boolean wrapLengthAuto;
@@ -156,7 +157,8 @@ public class PrefixingWriter extends Writer
      */
     public int getUsedLineSpace()
     {
-        return (lineLength == 0) ? 0 : (lineLength - totalPrefixLength);
+        // return (lineLength == 0) ? 0 : (lineLength - totalPrefixLength);
+        return lineStart ? 0 : (lineLength - totalPrefixLength);
     }
 
     /**
@@ -270,6 +272,7 @@ public class PrefixingWriter extends Writer
         {
             out.write(prefix);
         }
+        lineStart = false;
         lineLength += totalPrefixLength;
         if(lineLength >= wrapLength)
         {
@@ -288,7 +291,8 @@ public class PrefixingWriter extends Writer
      */
     private void lineBreak() throws IOException
     {
-        if(lineLength == 0)
+        // if(lineLength == 0)
+        if(lineStart)
         {
             writePrefix();
         }
@@ -298,6 +302,7 @@ public class PrefixingWriter extends Writer
         }
         out.write('\n');
         flush();
+        lineStart = true;
         lineLength = 0;
         if(nextLinePrefix != null)
         {
@@ -314,60 +319,57 @@ public class PrefixingWriter extends Writer
     @Override
     public void write(int ch) throws IOException
     {
-        // if(lineLength == 0)
-        // {
-        //     writePrefix();
-        // }
-        //
-        // if(ch == '\n')
-        // {
-        //     lineBreak();
-        // }
-        // else
-        // {
-        //     if(wrapLength > 0 && lineLength == wrapLength)
-        //     {
-        //         lineBreak();
-        //     }
-        //     out.write(ch);
-        //     lineLength++;
-        // }
+        if(lineStart)
+        {
+            writePrefix();
+        }
         switch(charState)
         {
             case NORMAL:
                 switch(ch)
                 {
                     case '\033':
-                        charState = ESCAPE1;
+                        charState = CharState.ESCAPE1;
                         ansiIndex = 0;
+                        out.write(ch);
                         break;
 
                     case '\n':
                         lineBreak();
                         break;
 
-                    default: {}
+                    default:
+                        if(wrapLength > 0 && lineLength == wrapLength)
+                        {
+                            lineBreak();
+                            writePrefix();
+                        }
+                        out.write(ch);
+                        lineLength++;
                 }
                 break;
 
             case ESCAPE1:
-                charState = (ch == '[') ? ESCAPE2 : NORMAL;
+                charState = (ch == '[') ? CharState.ESCAPE2 : CharState.NORMAL;
+                out.write(ch);
                 break;
 
             case ESCAPE2:
                 if(ansiIndex >= ansiBuffer.length)
                 {
                     char[] newBuf = new char[ansiBuffer.length * 2 + 1];
-                    System.arrayCopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
+                    System.arraycopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
                     ansiBuffer = newBuf;
                 }
-                ansiBuffer[ansiIndex] = ch;
+                ansiBuffer[ansiIndex] = (char)ch;
                 ansiIndex++;
                 if(ch < 0x20 || 0x3f < ch)
                 {
-                    ansiState.update(ansiBuffer, 0, ansiIndex)
-                    charState = NORMAL;
+                    ansiState.update(ansiBuffer, 0, ansiIndex);
+                    charState = CharState.NORMAL;
                 }
+                out.write(ch);
+                break;
         }
     }
 
@@ -377,21 +379,16 @@ public class PrefixingWriter extends Writer
      */
     private void writeSegment(char[] buf, int off, int len) throws IOException
     {
+        if(lineStart)
+        {
+            writePrefix();
+        }
         if(wrapLength == 0)
         {
-            if(lineLength == 0)
-            {
-                writePrefix();
-            }
             out.write(buf, off, len);
         }
         else
         {
-            if(lineLength == 0)
-            {
-                writePrefix();
-            }
-
             int currentOff = off;
             int remainingLen = len;
             while((lineLength + remainingLen) > wrapLength)
@@ -432,6 +429,58 @@ public class PrefixingWriter extends Writer
             throw new IndexOutOfBoundsException("Offset + length exceed the buffer size");
         }
 
+        // int lineStart = off;
+        // for(int i = off; i < end; i++)
+        // {
+        //     char ch = buf[i];
+        //     switch(charState)
+        //     {
+        //         case NORMAL:
+        //             switch(ch)
+        //             {
+        //                 case '\033':
+        //                     charState = CharState.ESCAPE1;
+        //                     ansiIndex = 0;
+        //                     break;
+        //
+        //                 case '\n':
+        //                     if(i > lineStart)
+        //                     {
+        //                         writeSegment(buf, lineStart, i - lineStart);
+        //                     }
+        //                     lineBreak();
+        //                     lineStart = i + 1;
+        //                     break;
+        //
+        //                 default: {}
+        //             }
+        //             break;
+        //
+        //         case ESCAPE1:
+        //             charState = (ch == '[') ? CharState.ESCAPE2 : CharState.NORMAL;
+        //             break;
+        //
+        //         case ESCAPE2:
+        //             if(ansiIndex >= ansiBuffer.length)
+        //             {
+        //                 char[] newBuf = new char[ansiIndex * 2 + 1];
+        //                 System.arraycopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
+        //                 ansiBuffer = newBuf;
+        //             }
+        //             ansiBuffer[ansiIndex] = ch;
+        //             ansiIndex++;
+        //             if(ch < 0x20 || 0x3f < ch)
+        //             {
+        //                 ansiState.update(ansiBuffer, 0, ansiIndex);
+        //                 charState = CharState.NORMAL;
+        //             }
+        //     }
+        // }
+        // if(lineStart < end)
+        // {
+        //     writeSegment(buf, lineStart, end - lineStart);
+        // }
+
         int start = off;
         for(int i = off; i < end; i++)
         {
@@ -446,9 +495,12 @@ public class PrefixingWriter extends Writer
                             {
                                 writeSegment(buf, start, i - start);
                             }
-                            start = i;
-                            charState = ESCAPE1;
-                            ansiIndex = 0;
+                            charState = CharState.ESCAPE1;
+                            if(lineStart)
+                            {
+                                writePrefix();
+                            }
+                            out.write(ch);
                             break;
 
                         case '\n':
@@ -460,34 +512,57 @@ public class PrefixingWriter extends Writer
                             start = i + 1;
                             break;
 
-                        default: {}
+                        default: ;
                     }
                     break;
 
                 case ESCAPE1:
-                    charState = (ch == '[') ? ESCAPE2 : NORMAL;
+                    charState = (ch == '[') ? CharState.ESCAPE2 : CharState.NORMAL;
+                    start = i + 1;
+                    ansiIndex = 0;
+                    if(lineStart)
+                    {
+                        writePrefix();
+                    }
+                    out.write(ch);
                     break;
 
                 case ESCAPE2:
                     if(ansiIndex >= ansiBuffer.length)
                     {
                         char[] newBuf = new char[ansiIndex * 2 + 1];
-                        System.arrayCopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
+                        System.arraycopy(ansiBuffer, 0, newBuf, 0, ansiBuffer.length);
                         ansiBuffer = newBuf;
                     }
                     ansiBuffer[ansiIndex] = ch;
                     ansiIndex++;
                     if(ch < 0x20 || 0x3f < ch)
                     {
-                        ansiState.update(ansiBuffer, 0, ansiIndex)
-                        charState = NORMAL;
+                        if(lineStart)
+                        {
+                            writePrefix();
+                        }
+                        ansiState.update(ansiBuffer, 0, ansiIndex);
+                        out.write(buf, start, i - start + 1);
+                        charState = CharState.NORMAL;
                         start = i + 1;
                     }
             }
         }
-        if(charState == CharState.NORMAL && start < end)
+        if(start < end)
         {
-            writeSegment(buf, start, end - start);
+            switch(charState)
+            {
+                case NORMAL:
+                    writeSegment(buf, start, end - start);
+                    break;
+
+                case ESCAPE2:
+                    out.write(buf, start, end - start);
+                    break;
+
+                default: ;
+            }
         }
 
         //     switch(buf[lookahead])

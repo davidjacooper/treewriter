@@ -13,6 +13,8 @@ class PrefixingWriterTest extends Specification
         "write(char[])",
         "write(char[],int,int)",
         "write(int)",
+
+        "write(String,0,1),write(int)",
     ]
 
     @Shared Closure[] writeFunctions = [
@@ -37,6 +39,23 @@ class PrefixingWriterTest extends Specification
             for(var ch : s.chars)
             {
                 pw.write(ch as int)
+            }
+        },
+
+        {
+            pw, s ->
+            boolean toggle = false
+            for(var ch : s.chars)
+            {
+                if(toggle)
+                {
+                    pw.write("${ch}", 0, 1)
+                }
+                else
+                {
+                    pw.write(ch)
+                }
+                toggle = !toggle
             }
         },
     ]
@@ -154,53 +173,48 @@ class PrefixingWriterTest extends Specification
             write << writeFunctions
     }
 
-    def "wrapping with colour codes (#writeLabel)"()
+    def "non-wrapping with colour codes (#writeLabel)"()
     {
-        // I'm not thinking this through.
-        // The expected result should include 'reset' and 'carry-over' codes, not just a
-        // naively-wrapped version of the input.
-
         given:
-            var sw = new StringWriter()
-            var pw = new PrefixingWriter(sw)
-            pw.setWrapLength(6)
-
-//             var a = "\033[m"
-//             var b = "\033[123m"
-//             var c = "\033[32m"
-            var a = "\033[m"
-            var b = a
-            var c = a
-
+            pw.setWrapLength(11)
         when:
-//             pw.addPrefix("${a}!${b}!${c}")
-//             write(pw, "${a}Hel${b}lo \nw${c}orl${a}d\n")
-//             pw.addPrefix("!!")
-            write(pw, "${a}Hello world\n")
-
-//             var actual = sw.toString().chars.toList()
-//             var expected = ( "!!${a}Hel${b}l\n"
-//                              + "!!o w${c}o\n"
-//                              + "!!rl${a}d\n" ).chars.toList()
-
+            write(pw, "\033[31m\033[32mHello world\033[m")
         then:
-//             sw.toString() == ( "${a}!${b}!${c}${a}Hel${b}l\n"
-//                              + "${a}!${b}!${c}o w${c}o\n"
-//                              + "${a}!${b}!${c}rl${a}d\n" )
-//             sw.toString().chars.toList().collect{it as int} == ( "!!${a}Hel${b}l\n"
-//                              + "!!o w${c}o\n"
-//                              + "!!rl${a}d\n" ).chars.toList().collect {it as int}
-//             sw.toString() == ( "!!${a}Hel${b}l\n"
-//                              + "!!o w${c}o\n"
-//                              + "!!rl${a}d\n" )
-
-//             actual == expected
-
-            sw.toString().chars.toList().collect{it as int} == ("${a}Hello \nworld\n").chars.toList().collect {it as int}
-
+            sw.toString().replace('\033','~') == "\033[31m\033[32mHello world\033[m".replace('\033','~')
         where:
             writeLabel << writeLabels
             write << writeFunctions
+    }
 
+
+    def "wrapping with colour reset codes (#writeLabel)"()
+    {
+        given:
+            pw.setWrapLength(6)
+            var a = "\033[m"
+        when:
+            write(pw, "${a}Hel${a}lo ${a}w${a}orld\n")
+        then:
+            sw.toString().replace('\033','~') == "${a}Hel${a}lo ${a}\nw${a}orld\n".replace('\033','~')
+        where:
+            writeLabel << writeLabels
+            write << writeFunctions
+    }
+
+    def "wrapping with full colour codes (#writeLabel)"()
+    {
+        given:
+            pw.setWrapLength(6)
+            var a = "\033[31m"
+            var b = "\033[42m"
+            var c = "\033[;35m"
+            var reset = "\033[m"
+        when:
+            write(pw, "${a}H${reset}e${b}l${a}lo wo${c}rld ag${reset}ain\n")
+        then:
+            sw.toString() == "${a}H${reset}e${b}l${a}lo ${reset}\n${b}${a}wo${c}rld ${reset}\n${c}ag${reset}ain\n"
+        where:
+            writeLabel << writeLabels
+            write << writeFunctions
     }
 }
