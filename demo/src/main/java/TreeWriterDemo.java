@@ -151,7 +151,7 @@ public class TreeWriterDemo
         writer.startNode(false);
         writer.println("A");
 
-        writer.startLabelNode();
+        writer.startLabelNode(true);
         writer.println("label A");
         writer.endNode();
 
@@ -163,7 +163,7 @@ public class TreeWriterDemo
         writer.printPreLabel("pre-label B");
         writer.startNode(true);
         writer.println("B");
-        writer.printLabel("label B");
+        writer.printLabel(true, "label B");
         writer.startNode(true);
         writer.println("child");
         writer.endNode();

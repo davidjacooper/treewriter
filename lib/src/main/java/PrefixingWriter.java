@@ -53,6 +53,7 @@ public class PrefixingWriter extends Writer
     private Writer out;
     private Deque<String> prefixes = new LinkedList<>();
     private int totalPrefixLength = 0;
+    private int nextTotalPrefixLength = 0;
     private String nextLinePrefix = null;
     private int lineLength = 0;
     private boolean lineStart = true;
@@ -212,7 +213,11 @@ public class PrefixingWriter extends Writer
             p += AnsiState.RESET;
         }
         prefixes.addLast(p);
-        totalPrefixLength += visibleLen;
+        nextTotalPrefixLength = totalPrefixLength + visibleLen;
+        if(lineStart)
+        {
+            totalPrefixLength = nextTotalPrefixLength;
+        }
     }
 
     /**
@@ -225,7 +230,11 @@ public class PrefixingWriter extends Writer
         {
             throw new IllegalStateException("No prefix currently exists");
         }
-        totalPrefixLength -= AnsiState.visibleLength(prefixes.removeLast());
+        nextTotalPrefixLength = totalPrefixLength - AnsiState.visibleLength(prefixes.removeLast());
+        if(lineStart)
+        {
+            totalPrefixLength = nextTotalPrefixLength;
+        }
         this.nextLinePrefix = null;
     }
 
@@ -300,6 +309,7 @@ public class PrefixingWriter extends Writer
         flush();
         lineStart = true;
         lineLength = 0;
+        totalPrefixLength = nextTotalPrefixLength;
         if(nextLinePrefix != null)
         {
             replacePrefix(nextLinePrefix);

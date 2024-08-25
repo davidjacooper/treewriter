@@ -174,11 +174,14 @@ public class NodeOptions
      * {@link parentLine(String) parentLine} with padding spaces). Use this to annotate parts of the
      * tree without creating (what look like) more nodes.
      *
+     * @param children True if the label needs an adjacent vertical line (mid-padding) to connect
+     *   to subsequent child nodes
      * @return This {@code NodeOptions} instance.
      */
-    public NodeOptions asLabel()
+    public NodeOptions asLabel(boolean children)
     {
-        this._midConnector = getMidPaddingPrefix();
+        // this._midConnector = getMidPaddingPrefix();
+        this._midConnector = children ? getEndPaddingPrefix() : getMidPaddingPrefix();
         return this;
     }
 

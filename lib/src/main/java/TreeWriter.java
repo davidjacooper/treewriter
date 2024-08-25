@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.*;
+import java.util.stream.Stream;
 
 /**
  * Provides a text-based tree-drawing capability in the form of a specialised {@link PrintWriter}.
@@ -317,10 +318,15 @@ public class TreeWriter extends PrintWriter
     /**
      * Convenience method for starting a "label node", intended to annotate the tree rather being a
      * "real" tree node. Label nodes lack a connector line joining them to the parent.
+     *
+     * @param children True if there are _also_ going to be "ordinary" child nodes following the
+     * label. (This will determine whether or not to draw a connector line adjacent to the label.)
      */
-    public void startLabelNode()
+    public void startLabelNode(boolean children)
     {
-        startNode(false, stdOptions.copy().asLabel());
+        // startNode(!children, stdOptions.copy().asLabel());
+        // startNode(false, stdOptions.copy().asLabel());
+        startNode(true, stdOptions.copy().asLabel(children));
     }
 
     /**
@@ -359,9 +365,9 @@ public class TreeWriter extends PrintWriter
      * being a "real" tree node) in one step.
      * @param s The text of the label to display.
      */
-    public void printLabel(String s)
+    public void printLabel(boolean children, String s)
     {
-        startLabelNode();
+        startLabelNode(children);
         println(s);
         endNode();
     }
@@ -384,9 +390,9 @@ public class TreeWriter extends PrintWriter
      * @param format A format string.
      * @param args Arguments referenced by the format specifiers in the format string.
      */
-    public void printfLabel(String format, Object... args)
+    public void printfLabel(boolean children, String format, Object... args)
     {
-        startLabelNode();
+        startLabelNode(children);
         printf(format, args);
         endNode();
     }
@@ -413,16 +419,46 @@ public class TreeWriter extends PrintWriter
      * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
      *   {@code N} must be a common supertype.
      * @param node A reference to the root node in the tree (or subtree).
-     * @param childFn A {@link Function} for taking a node object and retrieving a
+     * @param childCollectionFn A {@link Function} for taking a node object and retrieving a
      *   {@link Collection} of child node objects from it.
-     * @param nodeToString A {@link Function} for obtaining the string representation for a given
+     * @param nodeToStringFn A {@link Function} for obtaining the string representation for a given
      *   node.
      */
     public <N> void printTree(N node,
-                              Function<? super N,Collection<? extends N>> childFn,
-                              Function<? super N,String> nodeToString)
+                              Function<? super N,Collection<? extends N>> childCollectionFn,
+                              Function<? super N,String> nodeToStringFn)
     {
-        forTree(node, childFn, n -> print(nodeToString.apply(n)));
+        forTree(node,
+                childCollectionFn,
+                n -> print(nodeToStringFn.apply(n)));
+        println();
+    }
+
+    /**
+     * Convenience method for printing an entire tree (or subtree), for when it isn't necessarily
+     * stored in memory, but you can, in advance, find the number of children for each node, and
+     * then retrieve each child one by one.
+     *
+     * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
+     *   {@code N} must be a common supertype.
+     * @param node A reference to the root node in the tree (or subtree).
+     * @param childCountFn A {@link ToIntFunction} that determines the number of child nodes for a
+     *   given node object.
+     * @param childStreamFn A {@link Function} that retrieves the children of a given node, as a
+     *   {@link Stream}. The number of objects returned in the stream must be equal to the value
+     *   reported by {@code childCountFn}.
+     * @param nodeToStringFn A {@link Function} for obtaining the string representation for a given
+     *   node.
+     */
+    public <N> void printTree(N node,
+                              ToIntFunction<? super N> childCountFn,
+                              Function<? super N,Stream<? extends N>> childStreamFn,
+                              Function<? super N,String> nodeToStringFn)
+    {
+        forTree(node,
+                childCountFn,
+                childStreamFn,
+                n -> print(nodeToStringFn.apply(n)));
         println();
     }
 
@@ -439,26 +475,35 @@ public class TreeWriter extends PrintWriter
      * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
      *   {@code N} must be a common supertype.
      * @param node A reference to the root node in the tree (or subtree).
-     * @param childFn A {@link Function} for taking a node object and retrieving a
+     * @param childCollectionFn A {@link Function} for taking a node object and retrieving a
      *   {@link Collection} of child node objects from it.
-     * @param nodePrinter A {@link Consumer}, taking a node reference. It is assumed this will make
+     * @param nodePrintFn A {@link Consumer}, taking a node reference. It is assumed this will make
      *   appropriate calls back to the {@code TreeWriter} to display the node's content.
      */
     public <N> void forTree(N node,
-                            Function<? super N,Collection<? extends N>> childFn,
-                            Consumer<? super N> nodePrinter)
+                            Function<? super N,Collection<? extends N>> childCollectionFn,
+                            Consumer<? super N> nodePrintFn)
     {
-        nodePrinter.accept(node);
+        forTree(node,
+                n -> childCollectionFn.apply(n).size(),
+                n -> childCollectionFn.apply(n).stream(),
+                nodePrintFn);
+    }
 
-        var children = childFn.apply(node);
-        int i = children.size();
+    public <N> void forTree(N node,
+                            ToIntFunction<? super N> childCountFn,
+                            Function<? super N,Stream<? extends N>> childStreamFn,
+                            Consumer<? super N> nodePrintFn)
+    {
+        nodePrintFn.accept(node);
 
-        for(var child : children)
+        int[] count = {childCountFn.applyAsInt(node)};
+        childStreamFn.apply(node).forEach(child ->
         {
-            startNode(i == 1);
-            forTree(child, childFn, nodePrinter);
+            startNode(count[0] == 1);
+            forTree(child, childCountFn, childStreamFn, nodePrintFn);
             endNode();
-            i--;
-        }
+            count[0]--;
+        });
     }
 }

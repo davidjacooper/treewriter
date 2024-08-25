@@ -1,7 +1,18 @@
 package au.djac.treewriter;
-
 import spock.lang.*
 
+/**
+ * PrefixingWriter tries to do several things at once:
+ * 1. Adding prefixes to lines;
+ * 2. Line wrapping and measurements of line spacing;
+ * 3. ANSI-code parsing;
+ * 4. Efficient interoperability with the standard Writer interface, so that writing happens
+ *    _either_ character-by-character (write(int)), or in bulk.
+ *
+ * Each test case addresses some aspect of 1-3, and in each test case we iterate over the different
+ * write() overloads (and some extra combinations of write()s). Each test case has a 'where' clause
+ * that selects elements of the 'writeFunctions' list.
+ */
 class PrefixingWriterTest extends Specification
 {
     StringWriter sw
@@ -189,6 +200,21 @@ class PrefixingWriterTest extends Specification
             write << writeFunctions
     }
 
+    def "replace prefix after next line (#label)"()
+    {
+        given:
+            pw.setWrapLength(7)
+        when:
+            pw.addPrefix("!!");
+            pw.replacePrefixAfterLine("@@@");
+            write(pw, "Hello world\n");
+        then:
+            sw.toString() == "!!Hello\n@@@ wor\n@@@ld\n"
+        where:
+            label << writeLabels
+            write << writeFunctions
+    }
+
     def "non-wrapping with colour codes (#label)"()
     {
         given:
@@ -261,4 +287,86 @@ class PrefixingWriterTest extends Specification
             label << writeLabels
             write << writeFunctions
     }
+
+    def "line space measurement"()
+    {
+        when:
+            pw.setWrapLength(5)
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 0
+            pw.getRemainingLineSpace() == 5
+
+        when:
+            pw.write('.')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 4
+
+        when:
+            pw.write('\033[m')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 4
+
+        when:
+            pw.write('\033[31m..')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 3
+            pw.getRemainingLineSpace() == 2
+
+        when:
+            pw.write('\n')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 0
+            pw.getRemainingLineSpace() == 5
+
+        when:
+            pw.write('12345')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 5
+            pw.getRemainingLineSpace() == 0
+
+        when:
+            pw.write('.')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 4
+
+        when:
+            pw.addPrefix("!!")
+        then:
+            // Since we've already started writing to the current line, any new prefix shouldn't
+            // take effect yet.
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 4
+
+        when:
+            pw.write('\n.')
+        then:
+            // Now the new prefix should take effect.
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 3
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 2
+    }
+
+    // TODO:
+    // - accessors
+    //   - isWrapLengthAuto
 }
