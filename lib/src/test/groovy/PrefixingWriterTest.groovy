@@ -180,7 +180,6 @@ class PrefixingWriterTest extends Specification
             write(pw, "Hello world\n")
             for(var i : 1..7)
             {
-                System.out.println(i)
                 pw.addPrefix("!")
                 write(pw, "Hello world\n")
             }

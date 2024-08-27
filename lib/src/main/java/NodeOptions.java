@@ -180,8 +180,9 @@ public class NodeOptions
      */
     public NodeOptions asLabel(boolean children)
     {
-        // this._midConnector = getMidPaddingPrefix();
-        this._midConnector = children ? getEndPaddingPrefix() : getMidPaddingPrefix();
+        var conn = children ? getMidPaddingPrefix() : getEndPaddingPrefix();
+        this._midConnector = conn;
+        this._endConnector = conn;
         return this;
     }
 

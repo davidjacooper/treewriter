@@ -324,9 +324,7 @@ public class TreeWriter extends PrintWriter
      */
     public void startLabelNode(boolean children)
     {
-        // startNode(!children, stdOptions.copy().asLabel());
-        // startNode(false, stdOptions.copy().asLabel());
-        startNode(true, stdOptions.copy().asLabel(children));
+        startNode(false, stdOptions.copy().asLabel(children));
     }
 
     /**

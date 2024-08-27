@@ -212,48 +212,36 @@ class TreeWriterTest extends Specification
             sw.toString() == unicodeChars(listTreeOutput)
     }
 
-    /* TODO:
-
-    label nodes
-    pre-label nodes
-
-    */
-
     def "labels and pre-labels"()
     {
         when:
-            tw.startPreLabelNode();
-            tw.println("root prelabel");
-            tw.endNode();
             tw.println("root")
-            tw.startLabelNode(true);
-            tw.println("root label");
-            tw.endNode();
-
-            tw.startPreLabelNode();
-            tw.println("node1 prelabel");
-            tw.endNode();
-            tw.startNode(false)
-            tw.println("node1")
-            tw.startLabelNode(false);
-            tw.println("node1 label");
-            tw.endNode();
+            tw.startLabelNode(true)
+            tw.println("root label")
             tw.endNode()
 
-            tw.startPreLabelNode();
-            tw.println("node2 prelabel");
-            tw.endNode();
+            tw.startPreLabelNode()
+            tw.println("node1 prelabel")
+            tw.endNode()
+            tw.startNode(false)
+            tw.println("node1")
+            tw.startLabelNode(false)
+            tw.println("node1 label")
+            tw.endNode()
+            tw.endNode()
+
+            tw.startPreLabelNode()
+            tw.println("node2 prelabel")
+            tw.endNode()
             tw.startNode(true)
             tw.println("node2")
-            tw.startLabelNode(false);
-            tw.println("node2 label");
-            tw.endNode();
+            tw.startLabelNode(false)
+            tw.println("node2 label")
+            tw.endNode()
             tw.endNode()
 
         then:
             sw.toString() == unicodeChars(/\
-                root prelabel
-                :
                 root
                 |   root label
                 |   node1 prelabel
@@ -266,5 +254,11 @@ class TreeWriterTest extends Specification
                         node2 label
             /.stripIndent())
     }
+
+    /*
+    TODO:
+
+    NodeOptions: nextSiblingOptions, firstChildOptions
+    */
 }
 
