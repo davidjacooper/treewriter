@@ -213,7 +213,7 @@ public class PrefixingWriter extends Writer
             p += AnsiState.RESET;
         }
         prefixes.addLast(p);
-        nextTotalPrefixLength = totalPrefixLength + visibleLen;
+        nextTotalPrefixLength += visibleLen;
         if(lineStart)
         {
             totalPrefixLength = nextTotalPrefixLength;
@@ -230,7 +230,7 @@ public class PrefixingWriter extends Writer
         {
             throw new IllegalStateException("No prefix currently exists");
         }
-        nextTotalPrefixLength = totalPrefixLength - AnsiState.visibleLength(prefixes.removeLast());
+        nextTotalPrefixLength -= AnsiState.visibleLength(prefixes.removeLast());
         if(lineStart)
         {
             totalPrefixLength = nextTotalPrefixLength;

@@ -15,12 +15,14 @@ class TreeWriterTest extends Specification
     }
 
     StringWriter sw
+    PrefixingWriter pw
     TreeWriter tw
 
     def setup()
     {
         sw = new StringWriter()
-        tw = new TreeWriter(sw)
+        pw = new PrefixingWriter(sw)
+        tw = new TreeWriter(pw)
     }
 
     def "trivial"()
@@ -253,6 +255,40 @@ class TreeWriterTest extends Specification
                 \-- node2
                         node2 label
             /.stripIndent())
+    }
+
+    def "line space"()
+    {
+        given:
+            pw.setWrapLength(100)
+
+        when:
+            var expectedSpace = 100
+            var expectedSpaceList = []
+            var actualSpaceList = []
+
+            tw.print("X")
+            for(var i : 1..9)
+            {
+                tw.startNode(false)
+                tw.print(pw.getLineSpace())
+                expectedSpaceList << 100 - (4 * i)
+                actualSpaceList   << pw.getLineSpace()
+            }
+            for(var i : 10..2)
+            {
+                tw.startNode(true)
+                tw.print(pw.getLineSpace())
+                expectedSpaceList << 100 - (4 * i)
+                actualSpaceList   << pw.getLineSpace()
+                tw.endNode()
+                tw.endNode()
+            }
+
+            System.out.println(sw.toString());
+
+        then:
+            actualSpaceList == expectedSpaceList
     }
 
     /*

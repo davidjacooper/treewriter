@@ -287,7 +287,7 @@ class PrefixingWriterTest extends Specification
             write << writeFunctions
     }
 
-    def "line space measurement"()
+    def "line space measurement (#label)"()
     {
         when:
             pw.setWrapLength(5)
@@ -363,6 +363,28 @@ class PrefixingWriterTest extends Specification
             pw.getLineSpace() == 3
             pw.getUsedLineSpace() == 1
             pw.getRemainingLineSpace() == 2
+
+        when:
+            pw.replacePrefix('@@')
+            pw.write('\n.')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 3
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 2
+
+        when:
+            pw.removePrefix()
+            pw.write('\n.')
+        then:
+            pw.getWrapLength() == 5
+            pw.getLineSpace() == 5
+            pw.getUsedLineSpace() == 1
+            pw.getRemainingLineSpace() == 4
+
+        where:
+            label << writeLabels
+            write << writeFunctions
     }
 
     // TODO:
