@@ -529,8 +529,8 @@ public class TreeWriter extends PrintWriter
      * @param childStreamFn A {@link Function} that retrieves the children of a given node, as a
      *   {@link Stream}. The number of objects returned in the stream must be equal to the value
      *   reported by {@code childCountFn}.
-     * @param nodeToStringFn A {@link Function} for obtaining the string representation for a given
-     *   node.
+     * @param nodePrintFn A {@link Consumer}, taking a node reference. It is assumed this will make
+     *   appropriate calls back to the {@code TreeWriter} to display the node's content.
      */
     public <N> void forTree(N node,
                             ToIntFunction<? super N> childCountFn,

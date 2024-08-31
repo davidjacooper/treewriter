@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'au.djac'
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     mavenCentral()
@@ -48,6 +48,18 @@ pmd {
     ruleSetFiles = files('../pmd-ruleset.xml')
 }
 
+tasks.named("jar") {
+    manifest {
+        attributes(
+            'Implementation-Title': rootProject.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': 'David J A Cooper',
+            'Specification-Title': rootProject.name,
+            'Specification-Version': project.version,
+            'Specification-Vendor': 'David J A Cooper'
+        )
+    }
+}
 
 tasks.withType(Javadoc) {
     options {
@@ -93,18 +105,18 @@ publishing {
     }
 
     repositories {
-        maven {
-            name = 'localRepo'
-            url = layout.buildDirectory.dir('repo')
-        }
 //         maven {
-//             name = 'GitHubPackages'
-//             url = 'https://maven.pkg.github.com/davidjacooper/treewriter'
-//             credentials {
-//                 username = System.getenv('GITHUB_USERNAME')
-//                 password = System.getenv('GITHUB_TOKEN')
-//             }
+//             name = 'localRepo'
+//             url = layout.buildDirectory.dir('repo')
 //         }
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/davidjacooper/treewriter'
+            credentials {
+                username = System.getenv('GITHUB_USERNAME')
+                password = System.getenv('GITHUB_TOKEN')
+            }
+        }
     }
 }
 
