@@ -225,18 +225,18 @@ public class TreeWriter extends PrintWriter
      * from a previous call to {@link startNode(boolean,NodeOptions)}, where an explicitly-provided
      * {@code NodeOptions} instance itself specified further options for child or sibling nodes.
      *
-     * @param lastSibling {@code true} if this is the final child of a given parent node, or
-     *   {@code false} if there will be more sibling nodes to come. (Specifying the wrong value here
+     * @param moreSiblings {@code true} if there will be further child nodes, for the same parent,
+     *   after this one, or {@code false} if this is the final child. (Specifying the wrong value here
      *   will result in an extraneous or disconnected line.)
      */
-    public void startNode(boolean lastSibling)
+    public void startNode(boolean moreSiblings)
     {
         var opts = stdOptions;
         if(depth < nextOptions.length && nextOptions[depth] != null)
         {
             opts = nextOptions[depth];
         }
-        startNode(lastSibling, opts);
+        startNode(moreSiblings, opts);
     }
 
     /**
@@ -250,12 +250,12 @@ public class TreeWriter extends PrintWriter
      * specify further options to be applied to its child and sibling nodes, but only when
      * {@link startNode(boolean)} (without explicit {@code NodeOptions}) is subsequently called.
      *
-     * @param lastSibling {@code true} if this is the final child of a given parent node, or
-     *   {@code false} if there will be more sibling nodes to come. (Specifying the wrong value here
+     * @param moreSiblings {@code true} if there will be further child nodes, for the same parent,
+     *   after this one, or {@code false} if this is the final child. (Specifying the wrong value here
      *   will result in an extraneous or disconnected line.)
      * @param nodeOptions The options to be used to format this new node.
      */
-    public void startNode(boolean lastSibling, NodeOptions nodeOptions)
+    public void startNode(boolean moreSiblings, NodeOptions nodeOptions)
     {
         depth++;
         try
@@ -267,15 +267,15 @@ public class TreeWriter extends PrintWriter
 
             String connector;
             String padding;
-            if(lastSibling)
-            {
-                connector = nodeOptions.getEndConnector();
-                padding = nodeOptions.getEndPaddingPrefix();
-            }
-            else
+            if(moreSiblings)
             {
                 connector = nodeOptions.getMidConnector();
                 padding = nodeOptions.getMidPaddingPrefix();
+            }
+            else
+            {
+                connector = nodeOptions.getEndConnector();
+                padding = nodeOptions.getEndPaddingPrefix();
             }
 
             int topMargin = nodeOptions.getTopMargin();
@@ -334,7 +334,7 @@ public class TreeWriter extends PrintWriter
      */
     public void startPreLabelNode()
     {
-        startNode(false, stdOptions.copy().asPreLabel());
+        startNode(true, stdOptions.copy().asPreLabel());
     }
 
     /**
@@ -361,6 +361,9 @@ public class TreeWriter extends PrintWriter
     /**
      * Convenience method for displaying a label node (intended to annotate the tree rather than
      * being a "real" tree node) in one step.
+     *
+     * @param children True if the current node (the node being labelled) is going to have
+     *   children. This will determine whether a vertical line is drawn to the left of the label.
      * @param s The text of the label to display.
      */
     public void printLabel(boolean children, String s)
@@ -373,6 +376,7 @@ public class TreeWriter extends PrintWriter
     /**
      * Convenience method for displaying a pre-label node (intended to annotate a subsequent node)
      * in one step.
+     *
      * @param s The text of the pre-label node.
      */
     public void printPreLabel(String s)
@@ -385,6 +389,9 @@ public class TreeWriter extends PrintWriter
     /**
      * Convenience method for displaying a label node (intended to annotate the tree rather than
      * being a "real" tree node), using {@link PrintWriter#printf} semantics.
+     *
+     * @param children True if the current node (the node being labelled) is going to have
+     *   children. This will determine whether a vertical line is drawn to the left of the label.
      * @param format A format string.
      * @param args Arguments referenced by the format specifiers in the format string.
      */
@@ -409,10 +416,14 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Convenience method for printing an entire tree (or subtree), based on a data structure,
-     * assuming each node can be represented by a simple string value. The client code is
-     * responsible for implementing the data structure. It must simply provide functions for
-     * traversing and converting nodes.
+     * Convenience method for printing an entire tree/subtree, for when:
+     * <ul>
+     *   <li>The tree is represented as a data structure, where, for each node, it's simple and
+     *       efficient to retrieve a {@link Collection} of child nodes;</li>
+     *   <li>Each node can be converted directly into a single string to be output (without needing
+     *       to make any additional {@code TreeWriter} calls, such as to add labels or alter node
+     *       options).</li>
+     * </ul>
      *
      * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
      *   {@code N} must be a common supertype.
@@ -433,9 +444,15 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Convenience method for printing an entire tree (or subtree), for when it isn't necessarily
-     * stored in memory, but you can, in advance, find the number of children for each node, and
-     * then retrieve each child one by one.
+     * Convenience method for printing an entire tree/subtree, for when:
+     * <ul>
+     *   <li>The tree is isn't necessarily stored as a simple data structure in memory, but, for
+     *       each node, child nodes can be retrieved as a {@link Stream}, <em>and</em> it is known
+     *       (in advance) how many children there will be;</li>
+     *   <li>Each node can be converted directly into a single string to be output (without needing
+     *       to make any additional {@code TreeWriter} calls, such as to add labels or alter node
+     *       options).</li>
+     * </ul>
      *
      * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
      *   {@code N} must be a common supertype.
@@ -461,14 +478,13 @@ public class TreeWriter extends PrintWriter
     }
 
     /**
-     * Convenience method for printing an entire tree (or subtree), based on a data structure. The
-     * client code is responsible for implementing the data structure. It must simply provide
-     * functions for traversing and converting nodes.
-     *
-     * <p>Unlike {@link printTree printTree}, this method does not assume that each node can
-     * (conveniently) be represented by a single string value. Rather, it permits the client code to
-     * supply a "node printer" for each node, which can make arbitrary calls back to the
-     * {@code TreeWriter}.
+     * Convenience method for printing/processing an entire tree/subtree, for when:
+     * <ul>
+     *   <li>The tree is represented as a data structure, where, for each node, it's simple and
+     *       efficient to retrieve a {@link Collection} of child nodes;</li>
+     *   <li>In order to print a node, additional calls back to the {@code TreeWriter} may be
+     *       needed, such as to add labels or alter node options.</li>
+     * </ul>
      *
      * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
      *   {@code N} must be a common supertype.
@@ -482,12 +498,40 @@ public class TreeWriter extends PrintWriter
                             Function<? super N,Collection<? extends N>> childCollectionFn,
                             Consumer<? super N> nodePrintFn)
     {
-        forTree(node,
-                n -> childCollectionFn.apply(n).size(),
-                n -> childCollectionFn.apply(n).stream(),
-                nodePrintFn);
+        nodePrintFn.accept(node);
+        var children = childCollectionFn.apply(node);
+        int count = children.size();
+        for(var child : children)
+        {
+            startNode(count > 1);
+            forTree(child, childCollectionFn, nodePrintFn);
+            endNode();
+            count--;
+        }
     }
 
+    /**
+     * Convenience method for printing/processing an entire tree/subtree, for when:
+     * <ul>
+     *   <li>The tree is isn't necessarily stored as a simple data structure in memory, but, for
+     *       each node, child nodes can be retrieved as a {@link Stream}, <em>and</em> it is known
+     *       (in advance) how many children there will be;</li>
+     *   <li>Each node can be converted directly into a single string to be output (without needing
+     *       to make any additional {@code TreeWriter} calls, such as to add labels or alter node
+     *       options).</li>
+     * </ul>
+     *
+     * @param <N> The type of the nodes in the tree. If the tree contains nodes of different types,
+     *   {@code N} must be a common supertype.
+     * @param node A reference to the root node in the tree (or subtree).
+     * @param childCountFn A {@link ToIntFunction} that determines the number of child nodes for a
+     *   given node object.
+     * @param childStreamFn A {@link Function} that retrieves the children of a given node, as a
+     *   {@link Stream}. The number of objects returned in the stream must be equal to the value
+     *   reported by {@code childCountFn}.
+     * @param nodeToStringFn A {@link Function} for obtaining the string representation for a given
+     *   node.
+     */
     public <N> void forTree(N node,
                             ToIntFunction<? super N> childCountFn,
                             Function<? super N,Stream<? extends N>> childStreamFn,
@@ -498,7 +542,7 @@ public class TreeWriter extends PrintWriter
         int[] count = {childCountFn.applyAsInt(node)};
         childStreamFn.apply(node).forEach(child ->
         {
-            startNode(count[0] == 1);
+            startNode(count[0] > 1);
             forTree(child, childCountFn, childStreamFn, nodePrintFn);
             endNode();
             count[0]--;

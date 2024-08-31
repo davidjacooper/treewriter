@@ -155,7 +155,6 @@ public class PrefixingWriter extends Writer
      */
     public int getUsedLineSpace()
     {
-        // return (lineLength == 0) ? 0 : (lineLength - totalPrefixLength);
         return lineStart ? 0 : (lineLength - totalPrefixLength);
     }
 

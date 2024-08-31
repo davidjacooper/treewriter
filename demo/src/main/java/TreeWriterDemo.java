@@ -72,12 +72,12 @@ public class TreeWriterDemo
     {
         if(depth > 3) { return; }
 
-        writer.startNode(false);
+        writer.startNode(true);
         writer.printf("Level %d, child A\n", depth);
         recursiveBinaryTree(writer, depth + 1);
         writer.endNode();
 
-        writer.startNode(true);
+        writer.startNode(false);
         writer.printf("Level %d, child B\n", depth);
         recursiveBinaryTree(writer, depth + 1);
         writer.endNode();
@@ -101,11 +101,11 @@ public class TreeWriterDemo
         writer.println();
         writer.println(blueBg + s.repeat(15) + reset);
 
-        writer.startNode(false);
+        writer.startNode(true);
         writer.println((s + redFg + s + blueBg + s + reset).repeat(10));
         writer.endNode();
 
-        writer.startNode(true);
+        writer.startNode(false);
         writer.println((s + blueBg + s + redFg + s + reset).repeat(10));
         writer.endNode();
 
@@ -117,14 +117,14 @@ public class TreeWriterDemo
         writer.println();
         writer.println("root");
 
-        writer.startNode(false, new NodeOptions().midConnector("\u251d\u2501\u2501\u2501\u2501> ")
+        writer.startNode(true, new NodeOptions().midConnector("\u251d\u2501\u2501\u2501\u2501> ")
                                                  .topMargin(2));
         writer.println("alpha");
 
-        writer.startNode(true, writer.getOptions().copy().endConnector("\u2558"));
+        writer.startNode(false, writer.getOptions().copy().endConnector("\u2558"));
         writer.println("beta");
 
-        writer.startNode(true, writer.getOptions().copy().endConnector("\u2570\u2508\u2573 ")
+        writer.startNode(false, writer.getOptions().copy().endConnector("\u2570\u2508\u2573 ")
                                                          .topMargin(1));
         writer.println("gamma");
 
@@ -132,7 +132,7 @@ public class TreeWriterDemo
         writer.endNode();
         writer.endNode();
 
-        writer.startNode(true);
+        writer.startNode(false);
         writer.println("delta");
         writer.endNode();
     }
@@ -148,23 +148,23 @@ public class TreeWriterDemo
         writer.println("pre-label A");
         writer.endNode();
 
-        writer.startNode(false);
+        writer.startNode(true);
         writer.println("A");
 
         writer.startLabelNode(true);
         writer.println("label A");
         writer.endNode();
 
-        writer.startNode(true);
+        writer.startNode(false);
         writer.println("child");
         writer.endNode();
         writer.endNode();
 
         writer.printPreLabel("pre-label B");
-        writer.startNode(true);
+        writer.startNode(false);
         writer.println("B");
         writer.printLabel(true, "label B");
-        writer.startNode(true);
+        writer.startNode(false);
         writer.println("child");
         writer.endNode();
         writer.endNode();
@@ -196,14 +196,14 @@ public class TreeWriterDemo
 
         // This first node will dictate the options to be used across all its child and sibling
         // nodes.
-        writer.startNode(false, opts1);
+        writer.startNode(true, opts1);
         writer.println("node");
 
         // A series of child nodes, _without_ any options explicitly provided. The options provided
         // beforehand will cause an alternation between opts1 and opts2.
         for(var i = 0; i < 5; i++)
         {
-            writer.startNode(true);
+            writer.startNode(false);
             writer.println("child");
         }
         for(var i = 0; i < 5; i++)
@@ -216,12 +216,12 @@ public class TreeWriterDemo
         // provided beforehand will cause an alternation between opts1 and opts3.
         for(var i = 0; i < 5; i++)
         {
-            writer.startNode(false);
+            writer.startNode(true);
             writer.println("sibling");
             writer.endNode();
         }
 
-        writer.startNode(true, writer.getOptions());
+        writer.startNode(false, writer.getOptions());
         writer.println("end");
         writer.endNode();
     }
@@ -234,7 +234,7 @@ public class TreeWriterDemo
             writer.print("left-aligned");
             writer.print(" ".repeat(writer.getRemainingLineSpace() - "right-aligned".length()));
             writer.print("right-aligned");
-            writer.startNode(true);
+            writer.startNode(false);
         }
         writer.println("end");
         for(var i = 0; i < 5; i++)
