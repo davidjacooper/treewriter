@@ -41,4 +41,4 @@ tw.print("child 2");
 tw.endNode();
 ```
 
-`TreeWriter` expands on the standard `PrintWriter` class, with additional methods for indicating where nodes start and end. The boolean values indicate whether any more sibling nodes are expected.
+`TreeWriter` extends the standard `PrintWriter` class, with additional methods for indicating where nodes start and end. The boolean values indicate whether any more sibling nodes are expected.

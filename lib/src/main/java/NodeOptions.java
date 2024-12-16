@@ -1,5 +1,6 @@
 package au.djac.treewriter;
 
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -7,17 +8,64 @@ import java.util.function.Consumer;
  */
 public class NodeOptions
 {
-    private int _topMargin = 0;
-    private int _topConnectorLength = 0;
-    private String _topConnector = "\u250a";
-    private String _parentLine = "\u2502";
-    private String _midConnector = "\u251c\u2500\u2500 ";
-    private String _endConnector = "\u2514\u2500\u2500 ";
-    private String _midPaddingPrefix = null;
-    private String _endPaddingPrefix = null;
+    private static final int DEFAULT_TOP_MARGIN = 0;
+    private static final int DEFAULT_TOP_CONNECTOR_LENGTH = 1;
+    private static final String DEFAULT_TOP_CONNECTOR = "\u250a";
+    private static final String DEFAULT_PARENT_LINE   = "\u2502";
+    private static final String DEFAULT_MID_CONNECTOR = "\u251c\u2500\u2500 ";
+    private static final String DEFAULT_END_CONNECTOR = "\u2514\u2500\u2500 ";
+    private static final String DEFAULT_MID_PADDING_PREFIX = null;
+    private static final String DEFAULT_END_PADDING_PREFIX = null;
+
+    private static int nextId = 0;
+    private int id = nextId++;
+
+    private int _topMargin = DEFAULT_TOP_MARGIN;
+    private int _topConnectorLength = DEFAULT_TOP_CONNECTOR_LENGTH;
+    private String _topConnector = DEFAULT_TOP_CONNECTOR;
+    private String _parentLine = DEFAULT_PARENT_LINE;
+    private String _midConnector = DEFAULT_MID_CONNECTOR;
+    private String _endConnector = DEFAULT_END_CONNECTOR;
+    private String _midPaddingPrefix = DEFAULT_MID_PADDING_PREFIX;
+    private String _endPaddingPrefix = DEFAULT_END_PADDING_PREFIX;
 
     private NodeOptions _nextSiblingOptions = null;
     private NodeOptions _firstChildOptions = null;
+
+
+    private static void propString(List<String> out, String name, Object default_, Object value)
+    {
+        if(!Objects.equals(default_, value))
+        {
+            out.add(String.format("%s=%s", name, value));
+        }
+    }
+
+    @Override
+    public String toString()
+    {
+        var p = new ArrayList<String>();
+        propString(p, "topMargin",          DEFAULT_TOP_MARGIN,           _topMargin);
+        propString(p, "topConnectorLength", DEFAULT_TOP_CONNECTOR_LENGTH, _topConnectorLength);
+        propString(p, "topConnector",       DEFAULT_TOP_CONNECTOR,        _topConnector);
+        propString(p, "parentLine",         DEFAULT_PARENT_LINE,          _parentLine);
+        propString(p, "midConnector",       DEFAULT_MID_CONNECTOR,        _midConnector);
+        propString(p, "endConnector",       DEFAULT_END_CONNECTOR,        _endConnector);
+        propString(p, "midPaddingPrefix",   DEFAULT_MID_PADDING_PREFIX,   _midPaddingPrefix);
+        propString(p, "endPaddingPrefix",   DEFAULT_END_PADDING_PREFIX,   _endPaddingPrefix);
+
+        if(_nextSiblingOptions != null)
+        {
+            p.add(String.format("nextSiblingOptions=#%d", _nextSiblingOptions.id));
+        }
+
+        if(_firstChildOptions != null)
+        {
+            p.add(String.format("firstChildOptions=#%d", _firstChildOptions.id));
+        }
+
+        return String.format("NodeOptions#%d%s", id, p);
+    }
 
     /**
      * Creates a separate copy of this set of node options.
@@ -57,13 +105,9 @@ public class NodeOptions
 
     /**
      * Sets the "top connector length" &ndash; the number of lines preceding a node that contain
-     * the "top connector", a visual mechanism for connecting the node to a preceding node <em>in a
-     * special way</em>. This is <em>not</em> the normal mechanism for drawing just a basic tree
-     * structure. Rather, it is used (for instance) to draw "pre labels".
-     *
-     * <p>This is 0 by default (no top connector), and would typically be 0 or 1. If non-zero values
-     * for both {@link topMargin(int) topMargin} and {@code topConnectorLength} are given, the
-     * margin precedes the top connector.
+     * the "top connector", a visual mechanism for connecting the node to a preceding "pre-label"
+     * node. This is <em>not</em> the normal mechanism for drawing just a basic tree structure.
+     * This is 1 by default.
      *
      * @see TreeWriter#startPreLabelNode
      * @param topConnectorLength A new "top connector length".
@@ -78,8 +122,8 @@ public class NodeOptions
     /**
      * Sets the "top connector" string, to be printed before a node
      * ({@link topConnectorLength(int) topConnectorLength} times) to indicate that it's connected
-     * to a preceding node <em>in a special way</em>. This is <em>not</em> the normal mechanism for
-     * drawing just a basic tree structure. Rather, it is used (for instance) to draw "pre labels".
+     * to a preceding pre-label node. This is <em>not</em> the normal mechanism for drawing just a
+     * basic tree structure.
      *
      * <p>By default, this is "┊", the unicode "BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL"
      * character, 0x250a.
@@ -180,9 +224,10 @@ public class NodeOptions
      */
     public NodeOptions asLabel(boolean children)
     {
-        var conn = children ? getMidPaddingPrefix() : getEndPaddingPrefix();
-        this._midConnector = conn;
-        this._endConnector = conn;
+        var pad = children ? getMidPaddingPrefix() : getEndPaddingPrefix();
+        this._midConnector = pad;
+        this._endConnector = pad;
+        this._midPaddingPrefix = pad;
         return this;
     }
 
@@ -196,7 +241,6 @@ public class NodeOptions
      */
     public NodeOptions asPreLabel()
     {
-        nextSiblingOptions(n -> n.topMargin(0).topConnectorLength(1));
         midConnector(getMidPaddingPrefix());
         return this;
     }

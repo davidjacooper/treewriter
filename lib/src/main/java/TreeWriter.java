@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * <p>If this is the case, then client code can simply call {@link startNode(boolean)} to enter
  * a new node context, and {@link endNode() endNode} to exit it, with pairs of such calls occurring
  * within other pairs to represent nested tree nodes, for instance. (The boolean flag indicates
- * whether a given node will be the final sibling or not.)
+ * whether further sibling nodes are expected or not.)
  *
  * <p>Calls to any standard {@code PrintWriter} methods, like
  * {@link PrintWriter#println(String) println} or {@link PrintWriter#printf printf}, will supply the
@@ -48,6 +48,7 @@ public class TreeWriter extends PrintWriter
     private NodeOptions stdOptions = new NodeOptions();
     private NodeOptions[] nextOptions = new NodeOptions[10];
     private int depth = 0;
+    private boolean applyTopConnector = false;
 
     /**
      * Creates an instance that writes to an existing {@link PrefixingWriter} instance.
@@ -115,7 +116,7 @@ public class TreeWriter extends PrintWriter
      */
     public void setOptions(NodeOptions newOptions)
     {
-        this.stdOptions = newOptions;
+        this.stdOptions = (newOptions != null) ? newOptions : new NodeOptions();
     }
 
     /**
@@ -152,6 +153,11 @@ public class TreeWriter extends PrintWriter
     public boolean isWrapLengthAuto()
     {
         return prefixOut.isWrapLengthAuto();
+    }
+
+    public PrefixingWriter getPrefixingWriter()
+    {
+        return prefixOut;
     }
 
     /**
@@ -255,58 +261,43 @@ public class TreeWriter extends PrintWriter
      *   will result in an extraneous or disconnected line.)
      * @param nodeOptions The options to be used to format this new node.
      */
+    @SuppressWarnings("PMD.AvoidReassigningParameters")  // Substitute a default value if null
     public void startNode(boolean moreSiblings, NodeOptions nodeOptions)
     {
+        if(nodeOptions == null)
+        {
+            nodeOptions = stdOptions;
+        }
+
+        if(prefixOut.getUsedLineSpace() > 0)
+        {
+            println();
+        }
+
+        prefixOut.addPrefix(nodeOptions.getMidPaddingPrefix());
+        if(applyTopConnector)
+        {
+            applyTopConnector = false;
+            var topConnector = nodeOptions.getTopConnector();
+            for(int i = nodeOptions.getTopConnectorLength(); i > 0; i--)
+            {
+                println(topConnector);
+            }
+        }
+        else
+        {
+            for(int i = nodeOptions.getTopMargin(); i > 0; i--)
+            {
+                println();
+            }
+        }
+
+        prefixOut.replacePrefix(moreSiblings ? nodeOptions.getMidConnector()
+                                             : nodeOptions.getEndConnector());
+        prefixOut.replacePrefixAfterLine(moreSiblings ? nodeOptions.getMidPaddingPrefix()
+                                                      : nodeOptions.getEndPaddingPrefix());
+
         depth++;
-        try
-        {
-            if(prefixOut.getUsedLineSpace() > 0)
-            {
-                prefixOut.write('\n');
-            }
-
-            String connector;
-            String padding;
-            if(moreSiblings)
-            {
-                connector = nodeOptions.getMidConnector();
-                padding = nodeOptions.getMidPaddingPrefix();
-            }
-            else
-            {
-                connector = nodeOptions.getEndConnector();
-                padding = nodeOptions.getEndPaddingPrefix();
-            }
-
-            int topMargin = nodeOptions.getTopMargin();
-            int topConnectorLength = nodeOptions.getTopConnectorLength();
-            if(topMargin == 0 && topConnectorLength == 0)
-            {
-                prefixOut.addPrefix(connector);
-                prefixOut.replacePrefixAfterLine(padding);
-            }
-            else
-            {
-                prefixOut.addPrefix(nodeOptions.getMidPaddingPrefix());
-                for(int i = 0; i < topMargin; i++)
-                {
-                    prefixOut.write('\n');
-                }
-
-                var topConnector = nodeOptions.getTopConnector();
-                for(int i = 0; i < topConnectorLength; i++)
-                {
-                    println(topConnector);
-                }
-                prefixOut.replacePrefix(connector);
-                prefixOut.replacePrefixAfterLine(padding);
-            }
-        }
-        catch(IOException e)
-        {
-            setError();
-        }
-
         if(depth >= nextOptions.length)
         {
             nextOptions = Arrays.copyOf(nextOptions, depth * 2);
@@ -324,7 +315,7 @@ public class TreeWriter extends PrintWriter
      */
     public void startLabelNode(boolean children)
     {
-        startNode(false, stdOptions.copy().asLabel(children));
+        startNode(children, stdOptions.copy().asLabel(children));
     }
 
     /**
@@ -335,6 +326,7 @@ public class TreeWriter extends PrintWriter
     public void startPreLabelNode()
     {
         startNode(true, stdOptions.copy().asPreLabel());
+        applyTopConnector = true;
     }
 
     /**

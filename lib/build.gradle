@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'au.djac'
-version = '1.0.1'
+version = '1.0.2'
 
 repositories {
     mavenCentral()
@@ -18,6 +18,10 @@ dependencies {
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation 'org.apache.groovy:groovy:4.0.22'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+base {
+    archivesName = rootProject.name
 }
 
 java {
@@ -72,8 +76,6 @@ publishing {
         TreeWriterLibrary(MavenPublication) {
             artifactId = 'treewriter'
             from components.java
-
-            // versionMapping { ... } ??
 
             pom {
                 name = 'TreeWriter'

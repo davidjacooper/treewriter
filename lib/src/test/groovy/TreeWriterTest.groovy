@@ -11,7 +11,7 @@ class TreeWriterTest extends Specification
 
     String unicodeChars(String ascii)
     {
-        return ascii.collect{U.get(it) ?: it}.join()
+        return ascii.collect{ U.get(it) ?: it }.join()
     }
 
     StringWriter sw
@@ -257,6 +257,113 @@ class TreeWriterTest extends Specification
             /.stripIndent())
     }
 
+    def "labels and pre-labels with top margin"()
+    {
+        when:
+            tw.options.topMargin(2)
+
+            tw.println("root")
+            tw.startLabelNode(true)
+            tw.println("root label")
+            tw.endNode()
+
+            tw.startPreLabelNode()
+            tw.println("node1 prelabel")
+            tw.endNode()
+            tw.startNode(true)
+            tw.println("node1")
+            tw.startLabelNode(false)
+            tw.println("node1 label")
+            tw.endNode()
+            tw.endNode()
+
+            tw.startPreLabelNode()
+            tw.println("node2 prelabel")
+            tw.endNode()
+            tw.startNode(false)
+            tw.println("node2")
+            tw.startLabelNode(false)
+            tw.println("node2 label")
+            tw.endNode()
+            tw.endNode()
+
+        then:
+            sw.toString().replaceAll(/[ ]+\n/, "\n") == unicodeChars(/\
+                root
+                |
+                |
+                |   root label
+                |
+                |
+                |   node1 prelabel
+                |   :
+                +-- node1
+                |
+                |
+                |       node1 label
+                |
+                |
+                |   node2 prelabel
+                |   :
+                \-- node2
+
+
+                        node2 label
+            /.stripIndent())
+    }
+
+
+    def "labels and pre-labels with wrapping"()
+    {
+        when:
+            pw.setWrapLength(12)
+            tw.println("root")
+            tw.startLabelNode(true)
+            tw.println("root label")
+            tw.endNode()
+
+            tw.startPreLabelNode()
+            tw.println("node1 prelabel")
+            tw.endNode()
+            tw.startNode(true)
+            tw.println("node1")
+            tw.startLabelNode(false)
+            tw.println("node1 label")
+            tw.endNode()
+            tw.endNode()
+
+            tw.startPreLabelNode()
+            tw.println("node2 prelabel")
+            tw.endNode()
+            tw.startNode(false)
+            tw.println("node2")
+            tw.startLabelNode(false)
+            tw.println("node2 label")
+            tw.endNode()
+            tw.endNode()
+
+        then:
+            sw.toString() == unicodeChars(/\
+                root
+                |   root lab
+                |   el
+                |   node1 pr
+                |   elabel
+                |   :
+                +-- node1
+                |       node
+                |       1 la
+                |       bel
+                |   node2 pr
+                |   elabel
+                |   :
+                \-- node2
+                        node
+                        2 la
+                        bel
+            /.stripIndent())
+    }
+
     def "line space"()
     {
         given:
@@ -291,10 +398,28 @@ class TreeWriterTest extends Specification
             actualSpaceList == expectedSpaceList
     }
 
-    /*
-    TODO:
+    def "flat root tree"()
+    {
+        when:
+            var opts = tw.options;
+            var childOpts = opts.copy();
+            opts.midConnector("")
+            opts.endConnector("")
+            opts.topMargin(0)
+            opts.firstChildOptions(childOpts)
 
-    NodeOptions: nextSiblingOptions, firstChildOptions
-    */
+            tw.startNode(false)
+            tw.println("root")
+            tw.startNode(false)
+            tw.println("child")
+            tw.endNode()
+            tw.endNode()
+
+        then:
+            sw.toString() == unicodeChars(/\
+                root
+                \-- child
+            /.stripIndent())
+    }
 }
 
